@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Matter - Case Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="matters.html" class="text-gray-600 hover:text-gray-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <h1 class="text-2xl font-bold text-gray-900">New Matter</h1>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-3xl w-full mx-auto px-6 py-8">
+            <div class="bg-white rounded-lg shadow p-8">
+                <form id="matterForm" class="space-y-6">
+                    <!-- Client Selection -->
+                    <div>
+                        <label for="client" class="block text-sm font-medium text-gray-700 mb-1">
+                            Client <span class="text-red-500">*</span>
+                        </label>
+                        <select
+                            id="client"
+                            required
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            onchange="updateRateDisplay()"
+                        >
+                            <option value="">Select a client...</option>
+                        </select>
+                        <div class="flex justify-between items-center mt-2">
+                            <a href="new-client.html" class="text-sm text-blue-600 hover:text-blue-800">+ Add New Client</a>
+                            <span id="clientRateDisplay" class="text-sm text-gray-500"></span>
+                        </div>
+                    </div>
+
+                    <!-- Matter Name -->
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                            Matter Name <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="name"
+                            required
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter matter name"
+                        >
+                    </div>
+
+                    <!-- Matter Number -->
+                    <div>
+                        <label for="matterNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                            Matter Number
+                        </label>
+                        <input
+                            type="text"
+                            id="matterNumber"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Auto-generated if left blank"
+                        >
+                        <p class="mt-1 text-sm text-gray-500">Leave blank to auto-generate (M-XXXXX)</p>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                            Description
+                        </label>
+                        <textarea
+                            id="description"
+                            rows="4"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter matter description..."
+                        ></textarea>
+                    </div>
+
+                    <!-- Responsible Attorney -->
+                    <div>
+                        <label for="attorney" class="block text-sm font-medium text-gray-700 mb-1">
+                            Responsible Attorney
+                        </label>
+                        <select
+                            id="attorney"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Select attorney...</option>
+                        </select>
+                    </div>
+
+                    <!-- Billing Type -->
+                    <div>
+                        <label for="billingType" class="block text-sm font-medium text-gray-700 mb-1">
+                            Billing Type
+                        </label>
+                        <select
+                            id="billingType"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="hourly">Hourly</option>
+                            <option value="flat_fee">Flat Fee</option>
+                            <option value="contingency">Contingency</option>
+                        </select>
+                    </div>
+
+                    <!-- Hourly Rate -->
+                    <div id="hourlyRateSection">
+                        <label for="hourlyRate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Hourly Rate (Override)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">$</span>
+                            <input
+                                type="number"
+                                id="hourlyRate"
+                                step="0.01"
+                                min="0"
+                                class="w-full border rounded-lg pl-8 pr-4 py-2 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Leave blank to use client default"
+                            >
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Leave blank to use client's default rate. A "General" activity will be automatically created for this matter.
+                        </p>
+                    </div>
+
+                    <!-- Open Date -->
+                    <div>
+                        <label for="openDate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Open Date
+                        </label>
+                        <input
+                            type="date"
+                            id="openDate"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button
+                            type="button"
+                            onclick="window.location.href='matters.html'"
+                            class="px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border rounded-lg"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+                        >
+                            Create Matter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api/v1';
+        let clients = [];
+
+        async function loadClients() {
+            try {
+                const response = await fetch(`${API_BASE}/clients`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                clients = await response.json();
+
+                const select = document.getElementById('client');
+                select.innerHTML = '<option value="">Select a client...</option>' +
+                    clients.map(c => `<option value="${c.id}" data-rate="${c.default_hourly_rate || 350}">${c.name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading clients:', error);
+            }
+        }
+
+        async function loadAttorneys() {
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const users = await response.json();
+
+                const select = document.getElementById('attorney');
+                select.innerHTML = '<option value="">Select attorney...</option>' +
+                    users.map(u => `<option value="${u.id}">${u.first_name} ${u.last_name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading attorneys:', error);
+            }
+        }
+
+        function updateRateDisplay() {
+            const select = document.getElementById('client');
+            const selectedOption = select.options[select.selectedIndex];
+            const rate = selectedOption.getAttribute('data-rate');
+            const display = document.getElementById('clientRateDisplay');
+
+            if (rate) {
+                display.textContent = `Client default rate: $${parseFloat(rate).toFixed(2)}/hr`;
+            } else {
+                display.textContent = '';
+            }
+        }
+
+        document.getElementById('matterForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                client_id: parseInt(document.getElementById('client').value),
+                name: document.getElementById('name').value,
+                matter_number: document.getElementById('matterNumber').value || null,
+                description: document.getElementById('description').value,
+                responsible_attorney_id: document.getElementById('attorney').value ? parseInt(document.getElementById('attorney').value) : null,
+                billing_type: document.getElementById('billingType').value,
+                hourly_rate: document.getElementById('hourlyRate').value ? parseFloat(document.getElementById('hourlyRate').value) : null,
+                open_date: document.getElementById('openDate').value || new Date().toISOString().split('T')[0]
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/matters`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const matter = await response.json();
+                    alert(`Matter "${matter.name}" created successfully!\nMatter Number: ${matter.matter_number}\n\nA "General" activity has been created for time tracking.`);
+                    window.location.href = `matter-detail.html?id=${matter.id}`;
+                } else {
+                    const error = await response.json();
+                    alert('Error creating matter: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to create matter. Please try again.');
+            }
+        });
+
+        // Initialize
+        document.getElementById('openDate').value = new Date().toISOString().split('T')[0];
+        loadClients();
+        loadAttorneys();
+    </script>
+</body>
+</html>
