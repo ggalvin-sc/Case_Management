@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unbilled Time - Case Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-xl font-bold text-gray-800">Case Management</h1>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="../index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Dashboard
+                        </a>
+                        <a href="matters.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Matters
+                        </a>
+                        <a href="billing.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Time Entry
+                        </a>
+                        <a href="expenses.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Expenses
+                        </a>
+                        <a href="unbilled-time.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Unbilled Time
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-700 mr-4" id="userDisplay">User</span>
+                    <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header & Summary -->
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">Unbilled Time</h2>
+                    <p class="text-sm text-gray-600 mt-1">Review and manage unbilled time entries</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="markSelectedAsBilled()" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded">
+                        <i class="fas fa-check mr-2"></i>Mark as Billed
+                    </button>
+                    <button onclick="createInvoiceFromSelected()" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded">
+                        <i class="fas fa-file-invoice mr-2"></i>Create Invoice
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-orange-100 rounded-md p-3">
+                            <i class="fas fa-clock text-orange-600 text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Total Hours</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalHours">0.0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-blue-100 rounded-md p-3">
+                            <i class="fas fa-dollar-sign text-blue-600 text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Total Amount</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalAmount">$0.00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-purple-100 rounded-md p-3">
+                            <i class="fas fa-users text-purple-600 text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Clients</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalClients">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-green-100 rounded-md p-3">
+                            <i class="fas fa-file-alt text-green-600 text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Entries</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalEntries">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                    <select id="clientFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">All Clients</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Matter</label>
+                    <select id="matterFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">All Matters</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+                    <input type="date" id="dateFrom" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+                    <input type="date" id="dateTo" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="applyFilters()" class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded">
+                    <i class="fas fa-filter mr-2"></i>Apply Filters
+                </button>
+            </div>
+        </div>
+
+        <!-- Unbilled Time Table -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Unbilled Time Entries</h3>
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center text-sm text-gray-700">
+                            <input type="checkbox" id="selectAll" class="mr-2 rounded" onchange="toggleSelectAll()">
+                            Select All
+                        </label>
+                        <span class="text-sm text-gray-600" id="selectedCount">0 selected</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="flex-1 relative">
+                        <input type="text" id="searchInput" placeholder="Search entries..." class="w-full border border-gray-300 rounded-md pl-10 pr-3 py-2 text-sm">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <button onclick="clearSearch()" class="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
+                        Clear
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                <input type="checkbox" class="rounded" style="visibility: hidden;">
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTable('entry_date')">
+                                Date <i class="fas fa-sort ml-1"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTable('client_name')">
+                                Client <i class="fas fa-sort ml-1"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTable('matter_name')">
+                                Matter <i class="fas fa-sort ml-1"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTable('description')">
+                                Description <i class="fas fa-sort ml-1"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTable('duration_minutes')">
+                                Hours <i class="fas fa-sort ml-1"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTable('hourly_rate')">
+                                Rate <i class="fas fa-sort ml-1"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTable('amount')">
+                                Amount <i class="fas fa-sort ml-1"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="unbilledTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="9" class="px-6 py-8 text-center text-gray-500">Loading unbilled time...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let allEntries = [];
+        let filteredEntries = [];
+        let selectedEntries = new Set();
+        let allClients = [];
+        let allMatters = [];
+        let sortColumn = 'entry_date';
+        let sortDirection = 'desc';
+        let searchTerm = '';
+
+        async function loadClients() {
+            try {
+                allClients = await api.get('/clients');
+                const select = document.getElementById('clientFilter');
+                select.innerHTML = '<option value="">All Clients</option>' +
+                    allClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading clients:', error);
+            }
+        }
+
+        async function loadMatters() {
+            try {
+                allMatters = await api.get('/matters');
+                const select = document.getElementById('matterFilter');
+                select.innerHTML = '<option value="">All Matters</option>' +
+                    allMatters.map(m => `<option value="${m.id}">${m.client_name} - ${m.name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading matters:', error);
+            }
+        }
+
+        async function loadUnbilledTime() {
+            try {
+                // Get all unbilled time entries
+                const entries = await api.get('/time-entries', { billed: false });
+                allEntries = entries;
+                filteredEntries = entries;
+                renderTable();
+                updateSummary();
+            } catch (error) {
+                console.error('Error loading unbilled time:', error);
+                document.getElementById('unbilledTableBody').innerHTML =
+                    '<tr><td colspan="9" class="px-6 py-8 text-center text-red-500">Error loading data</td></tr>';
+            }
+        }
+
+        function applyFilters() {
+            const clientId = document.getElementById('clientFilter').value;
+            const matterId = document.getElementById('matterFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            filteredEntries = allEntries.filter(entry => {
+                // Apply filters
+                if (clientId && entry.client_id != clientId) return false;
+                if (matterId && entry.matter_id != matterId) return false;
+                if (dateFrom && entry.entry_date < dateFrom) return false;
+                if (dateTo && entry.entry_date > dateTo) return false;
+
+                // Apply search
+                if (searchTerm) {
+                    const search = searchTerm.toLowerCase();
+                    const matchesSearch =
+                        (entry.client_name && entry.client_name.toLowerCase().includes(search)) ||
+                        (entry.matter_name && entry.matter_name.toLowerCase().includes(search)) ||
+                        (entry.description && entry.description.toLowerCase().includes(search));
+                    if (!matchesSearch) return false;
+                }
+
+                return true;
+            });
+
+            // Apply sorting
+            sortEntries();
+
+            renderTable();
+            updateSummary();
+        }
+
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+
+            sortEntries();
+            renderTable();
+        }
+
+        function sortEntries() {
+            filteredEntries.sort((a, b) => {
+                let aVal = a[sortColumn];
+                let bVal = b[sortColumn];
+
+                // Handle null/undefined
+                if (aVal == null) aVal = '';
+                if (bVal == null) bVal = '';
+
+                // Convert to lowercase for string comparison
+                if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+                if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+
+                if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function performSearch() {
+            searchTerm = document.getElementById('searchInput').value;
+            applyFilters();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchTerm = '';
+            applyFilters();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('unbilledTableBody');
+
+            if (filteredEntries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-8 text-center text-gray-500">No unbilled time entries found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredEntries.map(entry => {
+                const hours = (entry.duration_minutes / 60).toFixed(2);
+                const checked = selectedEntries.has(entry.id) ? 'checked' : '';
+
+                return `
+                    <tr class="hover:bg-gray-50 ${selectedEntries.has(entry.id) ? 'bg-blue-50' : ''}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="checkbox" ${checked} onchange="toggleEntry('${entry.id}')" class="rounded entry-checkbox">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDate(entry.entry_date)}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">${entry.client_name || '-'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">${entry.matter_name || '-'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${truncate(entry.description, 60)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${hours}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatCurrency(entry.hourly_rate)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formatCurrency(entry.amount)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <button onclick="viewEntry('${entry.id}')" class="text-blue-600 hover:text-blue-900 mr-3">View</button>
+                            <button onclick="deleteEntry('${entry.id}')" class="text-red-600 hover:text-red-900">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateSummary() {
+            const totalHours = filteredEntries.reduce((sum, e) => sum + (e.duration_minutes / 60), 0);
+            const totalAmount = filteredEntries.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+            const uniqueClients = new Set(filteredEntries.map(e => e.client_id)).size;
+
+            document.getElementById('totalHours').textContent = totalHours.toFixed(1);
+            document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+            document.getElementById('totalClients').textContent = uniqueClients;
+            document.getElementById('totalEntries').textContent = filteredEntries.length;
+        }
+
+        function toggleEntry(entryId) {
+            if (selectedEntries.has(entryId)) {
+                selectedEntries.delete(entryId);
+            } else {
+                selectedEntries.add(entryId);
+            }
+            updateSelectedCount();
+            renderTable();
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            selectedEntries.clear();
+
+            if (selectAll) {
+                filteredEntries.forEach(entry => selectedEntries.add(entry.id));
+            }
+
+            updateSelectedCount();
+            renderTable();
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = `${selectedEntries.size} selected`;
+
+            // Update "Select All" checkbox state
+            const selectAllCheckbox = document.getElementById('selectAll');
+            if (selectedEntries.size === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (selectedEntries.size === filteredEntries.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
+        async function markSelectedAsBilled() {
+            if (selectedEntries.size === 0) {
+                alert('Please select entries to mark as billed');
+                return;
+            }
+
+            if (!confirm(`Mark ${selectedEntries.size} entries as billed?`)) {
+                return;
+            }
+
+            try {
+                // Mark each selected entry as billed
+                for (const entryId of selectedEntries) {
+                    await api.patch(`/time-entries/${entryId}`, { billed: true });
+                }
+
+                alert(`${selectedEntries.size} entries marked as billed`);
+                selectedEntries.clear();
+                loadUnbilledTime();
+            } catch (error) {
+                alert('Error marking entries as billed: ' + error.message);
+            }
+        }
+
+        function createInvoiceFromSelected() {
+            if (selectedEntries.size === 0) {
+                alert('Please select entries to create an invoice');
+                return;
+            }
+
+            // TODO: Implement invoice creation
+            alert(`Creating invoice for ${selectedEntries.size} entries (not yet implemented)`);
+        }
+
+        async function viewEntry(entryId) {
+            const entry = allEntries.find(e => e.id == entryId);
+            if (entry) {
+                alert(`Entry Details:\n\nDate: ${entry.entry_date}\nMatter: ${entry.matter_name}\nHours: ${(entry.duration_minutes/60).toFixed(2)}\nAmount: ${formatCurrency(entry.amount)}\n\nDescription:\n${entry.description}`);
+            }
+        }
+
+        async function deleteEntry(entryId) {
+            if (!confirm('Are you sure you want to delete this time entry?')) return;
+
+            try {
+                await api.delete(`/time-entries/${entryId}`);
+                loadUnbilledTime();
+            } catch (error) {
+                alert('Error deleting entry: ' + error.message);
+            }
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString();
+        }
+
+        function truncate(str, length) {
+            return str && str.length > length ? str.substring(0, length) + '...' : str;
+        }
+
+        // Event listeners
+        document.getElementById('clientFilter').addEventListener('change', () => {
+            // When client changes, filter matters
+            const clientId = document.getElementById('clientFilter').value;
+            const matterSelect = document.getElementById('matterFilter');
+
+            if (clientId) {
+                const filteredMatters = allMatters.filter(m => m.client_id == clientId);
+                matterSelect.innerHTML = '<option value="">All Matters</option>' +
+                    filteredMatters.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            } else {
+                matterSelect.innerHTML = '<option value="">All Matters</option>' +
+                    allMatters.map(m => `<option value="${m.id}">${m.client_name} - ${m.name}</option>`).join('');
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadClients();
+            loadMatters();
+            loadUnbilledTime();
+
+            // Search on input
+            document.getElementById('searchInput').addEventListener('input', performSearch);
+        });
+    </script>
+</body>
+</html>

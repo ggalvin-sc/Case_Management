@@ -164,17 +164,37 @@
                             <i class="fas fa-plus mr-2"></i>Add Time
                         </a>
                     </div>
+                    <div class="mb-4">
+                        <div class="relative">
+                            <input type="text" id="timeSearchInput" placeholder="Search time entries..." class="w-full border border-gray-300 rounded-md pl-10 pr-3 py-2 text-sm">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attorney</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTimeTable('entry_date')">
+                                        Date <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTimeTable('user_name')">
+                                        Attorney <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTimeTable('description')">
+                                        Description <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTimeTable('duration_minutes')">
+                                        Hours <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTimeTable('hourly_rate')">
+                                        Rate <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTimeTable('amount')">
+                                        Amount <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortTimeTable('billed')">
+                                        Status <i class="fas fa-sort ml-1"></i>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="timeEntriesTable" class="bg-white divide-y divide-gray-200">
@@ -192,15 +212,31 @@
                             <i class="fas fa-plus mr-2"></i>Add Expense
                         </a>
                     </div>
+                    <div class="mb-4">
+                        <div class="relative">
+                            <input type="text" id="expenseSearchInput" placeholder="Search expenses..." class="w-full border border-gray-300 rounded-md pl-10 pr-3 py-2 text-sm">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortExpenseTable('expense_date')">
+                                        Date <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortExpenseTable('category')">
+                                        Category <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortExpenseTable('description')">
+                                        Description <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortExpenseTable('billed_amount')">
+                                        Amount <i class="fas fa-sort ml-1"></i>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100" onclick="sortExpenseTable('billed')">
+                                        Status <i class="fas fa-sort ml-1"></i>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="expensesTable" class="bg-white divide-y divide-gray-200">
@@ -228,6 +264,16 @@
 
     <script>
         let matterId = null;
+        let allTimeEntries = [];
+        let filteredTimeEntries = [];
+        let timeSortColumn = 'entry_date';
+        let timeSortDirection = 'desc';
+        let timeSearchTerm = '';
+        let allExpenses = [];
+        let filteredExpenses = [];
+        let expenseSortColumn = 'expense_date';
+        let expenseSortDirection = 'desc';
+        let expenseSearchTerm = '';
         let currentTab = 'overview';
 
         async function loadMatterDetail() {
@@ -281,45 +327,132 @@
 
         async function loadTimeEntries() {
             try {
-                const entries = await api.get(`/matters/${matterId}/time-entries`);
-                const tbody = document.getElementById('timeEntriesTable');
-
-                if (entries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No time entries</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = entries.map(entry => `
-                    <tr>
-                        <td class="px-4 py-3 text-sm text-gray-900">${formatDate(entry.entry_date)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900">${entry.user_name}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${entry.description}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900">${(entry.duration_minutes / 60).toFixed(2)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900">${formatCurrency(entry.hourly_rate)}</td>
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(entry.amount)}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${entry.billed ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}">
-                                ${entry.billed ? 'Billed' : 'Unbilled'}
-                            </span>
-                        </td>
-                    </tr>
-                `).join('');
+                allTimeEntries = await api.get(`/matters/${matterId}/time-entries`);
+                filteredTimeEntries = allTimeEntries;
+                applyTimeFiltersAndSort();
             } catch (error) {
                 console.error('Error loading time entries:', error);
             }
         }
 
+        function applyTimeFiltersAndSort() {
+            filteredTimeEntries = allTimeEntries.filter(entry => {
+                if (timeSearchTerm) {
+                    const search = timeSearchTerm.toLowerCase();
+                    return (entry.user_name && entry.user_name.toLowerCase().includes(search)) ||
+                           (entry.description && entry.description.toLowerCase().includes(search));
+                }
+                return true;
+            });
+
+            sortTimeEntries();
+            renderTimeEntries();
+        }
+
+        function sortTimeTable(column) {
+            if (timeSortColumn === column) {
+                timeSortDirection = timeSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                timeSortColumn = column;
+                timeSortDirection = 'asc';
+            }
+            sortTimeEntries();
+            renderTimeEntries();
+        }
+
+        function sortTimeEntries() {
+            filteredTimeEntries.sort((a, b) => {
+                let aVal = a[timeSortColumn];
+                let bVal = b[timeSortColumn];
+                if (aVal == null) aVal = '';
+                if (bVal == null) bVal = '';
+                if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+                if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+                if (aVal < bVal) return timeSortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return timeSortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function renderTimeEntries() {
+            const tbody = document.getElementById('timeEntriesTable');
+            if (filteredTimeEntries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No time entries</td></tr>';
+                return;
+            }
+            tbody.innerHTML = filteredTimeEntries.map(entry => `
+                <tr>
+                    <td class="px-4 py-3 text-sm text-gray-900">${formatDate(entry.entry_date)}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${entry.user_name || '-'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">${entry.description}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${(entry.duration_minutes / 60).toFixed(2)}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${formatCurrency(entry.hourly_rate)}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(entry.amount)}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${entry.billed ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}">
+                            ${entry.billed ? 'Billed' : 'Unbilled'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
         async function loadExpenses() {
             try {
-                const expenses = await api.get(`/matters/${matterId}/expenses`);
-                const tbody = document.getElementById('expensesTable');
+                allExpenses = await api.get(`/matters/${matterId}/expenses`);
+                filteredExpenses = allExpenses;
+                applyExpenseFiltersAndSort();
+            } catch (error) {
+                console.error('Error loading expenses:', error);
+            }
+        }
 
-                if (expenses.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No expenses</td></tr>';
-                    return;
+        function applyExpenseFiltersAndSort() {
+            filteredExpenses = allExpenses.filter(expense => {
+                if (expenseSearchTerm) {
+                    const search = expenseSearchTerm.toLowerCase();
+                    return (expense.category && expense.category.toLowerCase().includes(search)) ||
+                           (expense.description && expense.description.toLowerCase().includes(search));
                 }
+                return true;
+            });
 
-                tbody.innerHTML = expenses.map(expense => `
+            sortExpenseList();
+            renderExpenses();
+        }
+
+        function sortExpenseTable(column) {
+            if (expenseSortColumn === column) {
+                expenseSortDirection = expenseSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                expenseSortColumn = column;
+                expenseSortDirection = 'asc';
+            }
+            sortExpenseList();
+            renderExpenses();
+        }
+
+        function sortExpenseList() {
+            filteredExpenses.sort((a, b) => {
+                let aVal = a[expenseSortColumn];
+                let bVal = b[expenseSortColumn];
+                if (aVal == null) aVal = '';
+                if (bVal == null) bVal = '';
+                if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+                if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+                if (aVal < bVal) return expenseSortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return expenseSortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function renderExpenses() {
+            const tbody = document.getElementById('expensesTable');
+            if (filteredExpenses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No expenses</td></tr>';
+                return;
+            }
+            tbody.innerHTML = filteredExpenses.map(expense => `
                     <tr>
                         <td class="px-4 py-3 text-sm text-gray-900">${formatDate(expense.expense_date)}</td>
                         <td class="px-4 py-3 text-sm text-gray-900">${expense.category}</td>
@@ -436,6 +569,17 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
             loadMatterDetail();
+
+            // Search event listeners
+            document.getElementById('timeSearchInput').addEventListener('input', () => {
+                timeSearchTerm = document.getElementById('timeSearchInput').value;
+                applyTimeFiltersAndSort();
+            });
+
+            document.getElementById('expenseSearchInput').addEventListener('input', () => {
+                expenseSearchTerm = document.getElementById('expenseSearchInput').value;
+                applyExpenseFiltersAndSort();
+            });
         });
     </script>
 </body>
