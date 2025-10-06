@@ -83,14 +83,79 @@
                     <!-- Address -->
                     <div>
                         <label for="address" class="block text-sm font-medium text-gray-700 mb-1">
-                            Address
+                            Address Line 1
                         </label>
-                        <textarea
+                        <input
+                            type="text"
                             id="address"
-                            rows="3"
                             class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-                            placeholder="Street address, City, State, ZIP"
-                        ></textarea>
+                            placeholder="Street address"
+                        >
+                    </div>
+
+                    <!-- Address Line 2 -->
+                    <div>
+                        <label for="addressLine2" class="block text-sm font-medium text-gray-700 mb-1">
+                            Address Line 2
+                        </label>
+                        <input
+                            type="text"
+                            id="addressLine2"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Apartment, suite, etc. (optional)"
+                        >
+                    </div>
+
+                    <!-- City, State, ZIP -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-1">
+                            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">
+                                City
+                            </label>
+                            <input
+                                type="text"
+                                id="city"
+                                class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                                placeholder="City"
+                            >
+                        </div>
+                        <div class="col-span-1">
+                            <label for="state" class="block text-sm font-medium text-gray-700 mb-1">
+                                State
+                            </label>
+                            <input
+                                type="text"
+                                id="state"
+                                class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                                placeholder="State"
+                                maxlength="2"
+                            >
+                        </div>
+                        <div class="col-span-1">
+                            <label for="zipCode" class="block text-sm font-medium text-gray-700 mb-1">
+                                ZIP Code
+                            </label>
+                            <input
+                                type="text"
+                                id="zipCode"
+                                class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-2-blue-500"
+                                placeholder="ZIP"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Country -->
+                    <div>
+                        <label for="country" class="block text-sm font-medium text-gray-700 mb-1">
+                            Country
+                        </label>
+                        <input
+                            type="text"
+                            id="country"
+                            value="USA"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Country"
+                        >
                     </div>
 
                     <!-- Default Hourly Rate -->
@@ -146,6 +211,11 @@
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 address: document.getElementById('address').value,
+                address_line2: document.getElementById('addressLine2').value,
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                zip_code: document.getElementById('zipCode').value,
+                country: document.getElementById('country').value,
                 default_hourly_rate: parseFloat(document.getElementById('defaultRate').value)
             };
 

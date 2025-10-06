@@ -38,14 +38,22 @@ db.serialize(() => {
         email TEXT,
         phone TEXT,
         address TEXT,
+        address_line2 TEXT,
+        city TEXT,
+        state TEXT,
+        zip_code TEXT,
+        country TEXT,
         default_hourly_rate REAL,
         kimai_customer_id INTEGER
     )`);
 
-    // Add default_hourly_rate column if it doesn't exist
-    db.run(`ALTER TABLE clients ADD COLUMN default_hourly_rate REAL`, (err) => {
-        // Ignore error if column already exists
-    });
+    // Add new address columns if they don't exist
+    db.run(`ALTER TABLE clients ADD COLUMN default_hourly_rate REAL`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN address_line2 TEXT`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN city TEXT`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN state TEXT`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN zip_code TEXT`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN country TEXT`, (err) => {});
 
     db.run(`CREATE TABLE IF NOT EXISTS matters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -339,13 +347,18 @@ const server = http.createServer(async (req, res) => {
             if (path === '/api/v1/clients' && method === 'POST') {
                 // Store client data locally only - no Kimai sync for case management data
                 const result = await dbRun(
-                    'INSERT INTO clients (name, client_number, email, phone, address, default_hourly_rate) VALUES (?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO clients (name, client_number, email, phone, address, address_line2, city, state, zip_code, country, default_hourly_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     [
                         data.name,
                         data.client_number || `CL-${Date.now()}`,
                         data.email,
                         data.phone,
                         data.address,
+                        data.address_line2,
+                        data.city,
+                        data.state,
+                        data.zip_code,
+                        data.country || 'USA',
                         data.default_hourly_rate || 350
                     ]
                 );
