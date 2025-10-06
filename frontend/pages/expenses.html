@@ -56,6 +56,14 @@
                             <input type="date" id="expenseDate" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
                         </div>
 
+                        <!-- Client Filter -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Filter by Client</label>
+                            <select id="clientFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <option value="">All Clients</option>
+                            </select>
+                        </div>
+
                         <!-- Matter Selection -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Matter *</label>
@@ -222,22 +230,50 @@
     </main>
 
     <script>
+        let allMatters = [];
+        let allClients = [];
+
+        async function loadClients() {
+            try {
+                allClients = await api.get('/clients');
+                const select = document.getElementById('clientFilter');
+                select.innerHTML = '<option value="">All Clients</option>' +
+                    allClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading clients:', error);
+            }
+        }
+
         async function loadMatters() {
             try {
-                const matters = await api.get('/matters', { status: 'active' });
-                const select = document.getElementById('matterSelect');
-                select.innerHTML = '<option value="">Select Matter...</option>' +
-                    matters.map(m => `<option value="${m.id}">${m.matter_number} - ${m.name}</option>`).join('');
+                allMatters = await api.get('/matters', { status: 'active' });
+                filterMatters();
 
                 // Pre-select if matter_id in URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const matterId = urlParams.get('matter_id');
                 if (matterId) {
-                    select.value = matterId;
+                    document.getElementById('matterSelect').value = matterId;
                 }
             } catch (error) {
                 console.error('Error loading matters:', error);
             }
+        }
+
+        function filterMatters() {
+            const clientId = document.getElementById('clientFilter').value;
+            const select = document.getElementById('matterSelect');
+
+            let filteredMatters = allMatters;
+            if (clientId) {
+                filteredMatters = allMatters.filter(m => m.client_id == clientId);
+            }
+
+            select.innerHTML = '<option value="">Select Matter...</option>' +
+                filteredMatters.map(m => {
+                    const clientName = m.client_name || 'Unknown Client';
+                    return `<option value="${m.id}" data-client="${m.client_id}">${clientName} - ${m.name} (${m.matter_number})</option>`;
+                }).join('');
         }
 
         async function loadExpenses() {
@@ -402,12 +438,14 @@
         }
 
         // Event listeners
+        document.getElementById('clientFilter').addEventListener('change', filterMatters);
         document.getElementById('amount').addEventListener('input', calculateBilledAmount);
         document.getElementById('markupPercentage').addEventListener('input', calculateBilledAmount);
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
+            loadClients();
             loadMatters();
             loadExpenses();
             loadRecentExpenses();
