@@ -76,59 +76,15 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Activity</label>
                             <select id="activityCode" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                                <option value="">Select Activity...</option>
-                                <option value="research">Legal Research</option>
-                                <option value="drafting">Drafting</option>
-                                <option value="court">Court Appearance</option>
-                                <option value="meeting">Client Meeting</option>
-                                <option value="phone">Phone Call</option>
-                                <option value="email">Email</option>
-                                <option value="review">Document Review</option>
-                                <option value="other">Other</option>
+                                <option value="">Select matter first...</option>
                             </select>
                         </div>
 
-                        <!-- Time Input Method -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Time Entry Method</label>
-                            <div class="flex space-x-4 mb-3">
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="timeMethod" value="duration" checked class="mr-2">
-                                    <span class="text-sm">Duration</span>
-                                </label>
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="timeMethod" value="startend" class="mr-2">
-                                    <span class="text-sm">Start/End Time</span>
-                                </label>
-                            </div>
-                        </div>
-
                         <!-- Duration Input -->
-                        <div id="durationInput">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration *</label>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <input type="number" id="hours" min="0" placeholder="Hours" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                                </div>
-                                <div>
-                                    <input type="number" id="minutes" min="0" max="59" step="6" placeholder="Minutes" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Start/End Time Input -->
-                        <div id="startEndInput" class="hidden">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                    <input type="time" id="startTime" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                    <input type="time" id="endTime" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                                </div>
-                            </div>
-                            <p class="text-sm text-gray-500 mt-1">Duration: <span id="calculatedDuration">0:00</span></p>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Hours) *</label>
+                            <input type="number" id="duration" min="0" step="0.1" placeholder="e.g., 1.5 for 1 hour 30 minutes" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            <p class="text-xs text-gray-500 mt-1">Enter decimal hours (e.g., 0.5 = 30 min, 1.25 = 1 hr 15 min)</p>
                         </div>
 
                         <!-- Description -->
@@ -142,11 +98,11 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Hourly Rate</label>
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
-                                    <input type="number" id="hourlyRate" step="0.01" class="w-full border border-gray-300 rounded-md pl-7 pr-3 py-2 text-sm">
+                                <div class="bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+                                    <span id="hourlyRateDisplay" class="text-sm text-gray-600">$0.00</span>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-1">Leave blank to use matter default</p>
+                                <input type="hidden" id="hourlyRate">
+                                <p class="text-xs text-gray-500 mt-1">From matter settings</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Billable</label>
@@ -279,67 +235,61 @@
             }
         }
 
-        function updateRate() {
+        async function updateRate() {
             const select = document.getElementById('matterSelect');
             const selectedOption = select.options[select.selectedIndex];
             const rate = selectedOption.getAttribute('data-rate');
+            const matterId = select.value;
 
-            if (rate) {
-                document.getElementById('hourlyRate').value = rate;
+            // Use rate from matter, or default to $350 if not set
+            const finalRate = rate && parseFloat(rate) > 0 ? parseFloat(rate) : 350;
+
+            document.getElementById('hourlyRate').value = finalRate;
+            document.getElementById('hourlyRateDisplay').textContent = formatCurrency(finalRate);
+
+            // Load activities for selected matter
+            if (matterId) {
+                await loadActivitiesForMatter(matterId);
+            } else {
+                document.getElementById('activityCode').innerHTML = '<option value="">Select matter first...</option>';
             }
 
             calculateAmount();
         }
 
+        async function loadActivitiesForMatter(matterId) {
+            try {
+                // In Kimai, we need to get activities filtered by project
+                const response = await fetch(`https://kimai-glg-u11035.vm.elestio.app/api/activities?project=${matterId}`, {
+                    headers: {
+                        'Authorization': 'Bearer 00d1c3f02410b298ac3bc2624',
+                        'Accept': 'application/json'
+                    }
+                });
+                const activities = await response.json();
+
+                const select = document.getElementById('activityCode');
+                if (activities.length === 0) {
+                    select.innerHTML = '<option value="">No activities for this matter</option>';
+                } else {
+                    select.innerHTML = '<option value="">Select Activity...</option>' +
+                        activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error loading activities:', error);
+                document.getElementById('activityCode').innerHTML = '<option value="">Error loading activities</option>';
+            }
+        }
+
         function calculateAmount() {
-            const hours = parseFloat(document.getElementById('hours').value) || 0;
-            const minutes = parseFloat(document.getElementById('minutes').value) || 0;
+            const duration = parseFloat(document.getElementById('duration').value) || 0;
             const rate = parseFloat(document.getElementById('hourlyRate').value) || 0;
 
-            const totalHours = hours + (minutes / 60);
-            const amount = totalHours * rate;
+            const amount = duration * rate;
 
             document.getElementById('calculatedAmount').textContent = formatCurrency(amount);
         }
 
-        function toggleTimeMethod() {
-            const method = document.querySelector('input[name="timeMethod"]:checked').value;
-            const durationInput = document.getElementById('durationInput');
-            const startEndInput = document.getElementById('startEndInput');
-
-            if (method === 'duration') {
-                durationInput.classList.remove('hidden');
-                startEndInput.classList.add('hidden');
-            } else {
-                durationInput.classList.add('hidden');
-                startEndInput.classList.remove('hidden');
-                calculateDuration();
-            }
-        }
-
-        function calculateDuration() {
-            const start = document.getElementById('startTime').value;
-            const end = document.getElementById('endTime').value;
-
-            if (start && end) {
-                const startDate = new Date(`2000-01-01T${start}`);
-                const endDate = new Date(`2000-01-01T${end}`);
-                const diff = (endDate - startDate) / 1000 / 60; // minutes
-
-                if (diff > 0) {
-                    const hours = Math.floor(diff / 60);
-                    const minutes = diff % 60;
-
-                    document.getElementById('calculatedDuration').textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
-
-                    // Update duration inputs
-                    document.getElementById('hours').value = hours;
-                    document.getElementById('minutes').value = minutes;
-
-                    calculateAmount();
-                }
-            }
-        }
 
         function toggleTimer() {
             if (timerRunning) {
@@ -374,11 +324,8 @@
         function saveTimer() {
             if (timerSeconds === 0) return;
 
-            const hours = Math.floor(timerSeconds / 3600);
-            const minutes = Math.floor((timerSeconds % 3600) / 60);
-
-            document.getElementById('hours').value = hours;
-            document.getElementById('minutes').value = minutes;
+            const decimalHours = (timerSeconds / 3600).toFixed(2);
+            document.getElementById('duration').value = decimalHours;
 
             calculateAmount();
 
@@ -397,9 +344,8 @@
         document.getElementById('timeEntryForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const hours = parseFloat(document.getElementById('hours').value) || 0;
-            const minutes = parseFloat(document.getElementById('minutes').value) || 0;
-            const durationMinutes = (hours * 60) + minutes;
+            const duration = parseFloat(document.getElementById('duration').value) || 0;
+            const durationMinutes = Math.round(duration * 60);
 
             if (durationMinutes === 0) {
                 alert('Please enter a duration');
@@ -444,14 +390,7 @@
         // Event listeners
         document.getElementById('clientFilter').addEventListener('change', filterMatters);
         document.getElementById('matterSelect').addEventListener('change', updateRate);
-        document.getElementById('hours').addEventListener('input', calculateAmount);
-        document.getElementById('minutes').addEventListener('input', calculateAmount);
-        document.getElementById('hourlyRate').addEventListener('input', calculateAmount);
-        document.querySelectorAll('input[name="timeMethod"]').forEach(radio => {
-            radio.addEventListener('change', toggleTimeMethod);
-        });
-        document.getElementById('startTime').addEventListener('change', calculateDuration);
-        document.getElementById('endTime').addEventListener('change', calculateDuration);
+        document.getElementById('duration').addEventListener('input', calculateAmount);
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
