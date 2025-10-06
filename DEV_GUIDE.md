@@ -47,8 +47,23 @@ python -m http.server 8000
 - CORS enabled for localhost
 
 **External Integration:**
-- Kimai Time Tracking API
+- Kimai Time Tracking API (for time entries only)
 - Token-based authentication to Kimai
+
+### Data Storage Architecture
+
+**Local SQLite Database (server.js) stores:**
+- Clients (all client data and default rates)
+- Matters (all matter/case data and rates)
+- Invoices (all billing and invoice data)
+- Expenses (all expense tracking)
+- Users (system users and attorneys)
+
+**Kimai stores:**
+- Time entries only (customers, projects, activities, and timesheets sync from Kimai)
+- Used as time tracking system, not case management
+
+**Important:** All case management and billing data is stored locally in SQLite. Kimai is ONLY used for time tracking entries. When viewing time entries, the system fetches them from Kimai via API but stores invoice relationships locally.
 
 ---
 

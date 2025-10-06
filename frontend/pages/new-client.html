@@ -161,7 +161,7 @@
 
                 if (response.ok) {
                     const client = await response.json();
-                    alert(`Client "${client.name}" created successfully!\nClient Number: ${client.client_number}`);
+                    alert(`Client "${client.name}" created successfully!\nClient Number: ${client.client_number}\n\nDefault rate: $${client.default_hourly_rate}/hr`);
                     window.location.href = 'matters.html';
                 } else {
                     const error = await response.json();

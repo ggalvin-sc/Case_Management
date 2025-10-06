@@ -337,31 +337,16 @@ const server = http.createServer(async (req, res) => {
             }
 
             if (path === '/api/v1/clients' && method === 'POST') {
-                // Create customer in Kimai first
-                let kimaiCustomerId = null;
-                const kimaiResult = await callKimaiAPI('POST', '/api/customers', {
-                    name: data.name,
-                    email: data.email || '',
-                    phone: data.phone || '',
-                    address: data.address || '',
-                    visible: true
-                });
-
-                if (kimaiResult && kimaiResult.success) {
-                    kimaiCustomerId = kimaiResult.data.id;
-                }
-
-                // Create in local database
+                // Store client data locally only - no Kimai sync for case management data
                 const result = await dbRun(
-                    'INSERT INTO clients (name, client_number, email, phone, address, default_hourly_rate, kimai_customer_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO clients (name, client_number, email, phone, address, default_hourly_rate) VALUES (?, ?, ?, ?, ?, ?)',
                     [
                         data.name,
                         data.client_number || `CL-${Date.now()}`,
                         data.email,
                         data.phone,
                         data.address,
-                        data.default_hourly_rate || 350,
-                        kimaiCustomerId
+                        data.default_hourly_rate || 350
                     ]
                 );
 
@@ -452,7 +437,7 @@ const server = http.createServer(async (req, res) => {
             }
 
             if (path === '/api/v1/matters' && method === 'POST') {
-                // Get client to find kimai_customer_id and default rate
+                // Get client to find default rate
                 const client = await dbGet('SELECT * FROM clients WHERE id = ?', [data.client_id]);
                 if (!client) {
                     sendJSON(res, 400, { error: 'Client not found' });
@@ -462,33 +447,10 @@ const server = http.createServer(async (req, res) => {
                 // Determine hourly rate: matter rate > client default rate > system default ($350)
                 const hourlyRate = data.hourly_rate || client.default_hourly_rate || 350;
 
-                // Create project in Kimai
-                let kimaiProjectId = null;
-                if (client.kimai_customer_id) {
-                    const projectResult = await callKimaiAPI('POST', '/api/projects', {
-                        name: data.name,
-                        customer: client.kimai_customer_id,
-                        visible: true,
-                        billable: true
-                    });
-
-                    if (projectResult && projectResult.success) {
-                        kimaiProjectId = projectResult.data.id;
-
-                        // Create "General" activity for this project
-                        await callKimaiAPI('POST', '/api/activities', {
-                            name: 'General',
-                            project: kimaiProjectId,
-                            visible: true,
-                            billable: true
-                        });
-                    }
-                }
-
-                // Create matter in local database
+                // Store matter data locally only - no Kimai sync for case management data
                 const result = await dbRun(`
-                    INSERT INTO matters (matter_number, client_id, name, description, status, attorney_id, billing_type, hourly_rate, open_date, kimai_project_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO matters (matter_number, client_id, name, description, status, attorney_id, billing_type, hourly_rate, open_date)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `, [
                     data.matter_number || `M-${Date.now()}`,
                     data.client_id,
@@ -498,8 +460,7 @@ const server = http.createServer(async (req, res) => {
                     data.responsible_attorney_id,
                     data.billing_type || 'hourly',
                     hourlyRate,
-                    data.open_date || new Date().toISOString().split('T')[0],
-                    kimaiProjectId
+                    data.open_date || new Date().toISOString().split('T')[0]
                 ]);
 
                 const matter = await dbGet('SELECT * FROM matters WHERE id = ?', [result.id]);

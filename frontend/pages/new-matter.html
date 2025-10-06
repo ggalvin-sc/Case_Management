@@ -131,7 +131,7 @@
                             >
                         </div>
                         <p class="mt-1 text-sm text-gray-500">
-                            Leave blank to use client's default rate. A "General" activity will be automatically created for this matter.
+                            Leave blank to use client's default rate
                         </p>
                     </div>
 
@@ -245,7 +245,7 @@
 
                 if (response.ok) {
                     const matter = await response.json();
-                    alert(`Matter "${matter.name}" created successfully!\nMatter Number: ${matter.matter_number}\n\nA "General" activity has been created for time tracking.`);
+                    alert(`Matter "${matter.name}" created successfully!\nMatter Number: ${matter.matter_number}\nHourly Rate: $${matter.hourly_rate}/hr`);
                     window.location.href = `matter-detail.html?id=${matter.id}`;
                 } else {
                     const error = await response.json();
