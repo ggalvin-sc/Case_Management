@@ -139,9 +139,51 @@ CREATE TABLE expenses (
     billed BOOLEAN DEFAULT 0,
     reimbursable BOOLEAN DEFAULT 0,
     receipt_url TEXT,
-    FOREIGN KEY (matter_id) REFERENCES matters(id)
+    invoice_id INTEGER,
+    FOREIGN KEY (matter_id) REFERENCES matters(id),
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+);
+
+-- Invoices table
+CREATE TABLE invoices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_number TEXT UNIQUE,
+    matter_id INTEGER NOT NULL,
+    client_id INTEGER NOT NULL,
+    issue_date DATE NOT NULL,
+    due_date DATE,
+    status TEXT DEFAULT 'draft',
+    subtotal DECIMAL(10,2) DEFAULT 0,
+    tax_rate DECIMAL(5,4) DEFAULT 0,
+    tax_amount DECIMAL(10,2) DEFAULT 0,
+    total_amount DECIMAL(10,2) DEFAULT 0,
+    notes TEXT,
+    payment_terms TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    finalized_at TIMESTAMP,
+    sent_at TIMESTAMP,
+    paid_at TIMESTAMP,
+    paid_amount DECIMAL(10,2) DEFAULT 0,
+    FOREIGN KEY (matter_id) REFERENCES matters(id),
+    FOREIGN KEY (client_id) REFERENCES clients(id)
+);
+
+-- Invoice line items table
+CREATE TABLE invoice_line_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id INTEGER NOT NULL,
+    item_type TEXT NOT NULL,  -- 'time' or 'expense'
+    item_id INTEGER,  -- Reference to time_entry or expense
+    description TEXT NOT NULL,
+    quantity DECIMAL(10,2) DEFAULT 1,
+    rate DECIMAL(10,2) DEFAULT 0,
+    amount DECIMAL(10,2) DEFAULT 0,
+    line_order INTEGER DEFAULT 0,
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id)
 );
 ```
+
+**Note:** Time entries also have an `invoice_id` column added to track which invoice they belong to.
 
 **Helper Functions:**
 ```javascript
@@ -335,6 +377,86 @@ Body: {
 }
 ```
 
+### Invoices
+```javascript
+GET /invoices
+Query: ?status=draft&matter_id=1&client_id=1
+Response: [{
+    id, invoice_number, matter_id, client_id,
+    issue_date, due_date, status,
+    subtotal, tax_amount, total_amount,
+    client_name, matter_name, line_item_count
+}]
+
+GET /invoices/:id
+Response: {
+    ...invoice fields,
+    line_items: [{
+        id, item_type, description,
+        quantity, rate, amount
+    }]
+}
+
+POST /invoices
+Body: {
+    matter_id,
+    client_id,
+    time_entry_ids: [1, 2, 3],
+    expense_ids: [1, 2],
+    issue_date,
+    due_date,
+    notes,
+    payment_terms
+}
+Response: { id, ...invoice }
+
+POST /invoices/:id/finalize
+# Locks invoice, generates invoice number, marks items as billed
+Response: { ...updated invoice }
+
+POST /invoices/:id/send
+# Marks invoice as sent
+Response: { ...updated invoice }
+
+POST /invoices/:id/payment
+Body: { amount, payment_date }
+# Records payment, updates status to 'paid' when fully paid
+Response: { ...updated invoice }
+
+PATCH /invoices/:id/status
+Body: { status: 'void' }
+# Manually update invoice status
+
+PATCH /invoices/:id
+Body: { due_date, tax_rate, notes, payment_terms }
+# Update invoice fields (draft/review only)
+
+DELETE /invoices/:id
+# Delete draft invoice
+
+GET /matters/:id/unbilled
+# Get unbilled time entries and expenses for a matter
+Response: {
+    time_entries: [...],
+    expenses: [...]
+}
+```
+
+**Invoice Workflow:**
+1. **Draft** → Can edit, add/remove items, delete
+2. **Review** → Ready for review, can still edit
+3. **Finalized** → Locked, invoice number assigned, items marked as billed
+4. **Sent** → Marked as sent to client
+5. **Paid** → Payment recorded, full or partial
+6. **Void** → Cancelled invoice
+
+### Time Entry Updates
+```javascript
+PATCH /time-entries/:id
+Body: { billed: true, invoice_id: 123 }
+# Mark time entry as billed and link to invoice
+```
+
 ### Kimai Sync
 ```javascript
 POST /sync/kimai/timesheets
@@ -358,7 +480,9 @@ frontend/
     ├── matter-detail.html  # Matter details with tabs
     ├── billing.html        # Time entry form
     ├── expenses.html       # Expense tracking
-    └── unbilled-time.html  # Unbilled time management
+    ├── unbilled-time.html  # Unbilled time management
+    ├── invoices.html       # Invoice list with filters
+    └── invoice-detail.html # Invoice detail and workflow
 ```
 
 ### API Client (`js/api.js`)

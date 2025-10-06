@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Detail - Case Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="invoices.html" class="text-gray-600 hover:text-gray-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900" id="invoiceTitle">Invoice</h1>
+                        <p class="text-sm text-gray-500" id="invoiceSubtitle"></p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3" id="actionButtons">
+                    <!-- Populated by JavaScript based on status -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+            <!-- Invoice Preview -->
+            <div class="bg-white rounded-lg shadow mb-6" id="invoicePreview">
+                <!-- Invoice Header -->
+                <div class="p-8 border-b">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900 mb-2" id="invoiceNumberDisplay">Invoice</h2>
+                            <div class="space-y-1 text-sm">
+                                <div><span class="text-gray-500">Issue Date:</span> <span id="issueDate" class="text-gray-900"></span></div>
+                                <div><span class="text-gray-500">Due Date:</span> <span id="dueDate" class="text-gray-900"></span></div>
+                                <div><span class="text-gray-500">Status:</span> <span id="statusDisplay"></span></div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-500 mb-1">Bill To</div>
+                            <div class="font-semibold text-gray-900" id="clientName"></div>
+                            <div class="text-sm text-gray-600" id="clientEmail"></div>
+                            <div class="text-sm text-gray-600 whitespace-pre-line" id="clientAddress"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Matter Info -->
+                <div class="px-8 py-4 bg-gray-50 border-b">
+                    <div class="text-sm">
+                        <span class="text-gray-500">Matter:</span>
+                        <span class="font-medium text-gray-900" id="matterInfo"></span>
+                    </div>
+                </div>
+
+                <!-- Line Items -->
+                <div class="p-8">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-left py-2 text-sm font-medium text-gray-500">Description</th>
+                                <th class="text-right py-2 text-sm font-medium text-gray-500 w-24">Qty/Hours</th>
+                                <th class="text-right py-2 text-sm font-medium text-gray-500 w-32">Rate</th>
+                                <th class="text-right py-2 text-sm font-medium text-gray-500 w-32">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lineItemsTable" class="divide-y">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+
+                    <!-- Totals -->
+                    <div class="mt-6 flex justify-end">
+                        <div class="w-64 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Subtotal:</span>
+                                <span class="font-medium" id="subtotalDisplay">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Tax:</span>
+                                <span class="font-medium" id="taxDisplay">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-lg font-bold border-t pt-2">
+                                <span>Total:</span>
+                                <span id="totalDisplay">$0.00</span>
+                            </div>
+                            <div id="paymentInfo" class="hidden border-t pt-2">
+                                <div class="flex justify-between text-sm text-green-600">
+                                    <span>Paid:</span>
+                                    <span id="paidDisplay">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-sm font-medium">
+                                    <span>Balance Due:</span>
+                                    <span id="balanceDisplay">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes and Terms -->
+                <div id="notesSection" class="px-8 pb-8 space-y-4 hidden">
+                    <div id="notesDisplay">
+                        <div class="text-sm font-medium text-gray-500 mb-1">Notes</div>
+                        <div class="text-sm text-gray-700"></div>
+                    </div>
+                    <div id="termsDisplay">
+                        <div class="text-sm font-medium text-gray-500 mb-1">Payment Terms</div>
+                        <div class="text-sm text-gray-700"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Record Payment Modal -->
+    <div id="paymentModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Record Payment</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Payment Amount</label>
+                        <input type="number" id="paymentAmount" step="0.01" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                        <input type="date" id="paymentDate" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button onclick="closePaymentModal()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border rounded-lg">
+                        Cancel
+                    </button>
+                    <button onclick="submitPayment()" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
+                        Record Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Invoice</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                        <input type="date" id="editDueDate" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+                        <input type="number" id="editTaxRate" step="0.01" class="w-full border rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea id="editNotes" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
+                        <textarea id="editTerms" rows="2" class="w-full border rounded-lg px-3 py-2"></textarea>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border rounded-lg">
+                        Cancel
+                    </button>
+                    <button onclick="submitEdit()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api/v1';
+        const urlParams = new URLSearchParams(window.location.search);
+        const invoiceId = urlParams.get('id');
+
+        let invoice = null;
+
+        // Utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'draft': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Draft</span>',
+                'review': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Review</span>',
+                'finalized': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">Finalized</span>',
+                'sent': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Sent</span>',
+                'paid': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Paid</span>',
+                'void': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Void</span>'
+            };
+            return badges[status] || status;
+        }
+
+        // API calls
+        async function fetchInvoice() {
+            try {
+                const response = await fetch(`${API_BASE}/invoices/${invoiceId}`);
+                invoice = await response.json();
+                renderInvoice();
+            } catch (error) {
+                console.error('Error fetching invoice:', error);
+            }
+        }
+
+        async function finalizeInvoice() {
+            if (!confirm('Finalize this invoice? This will lock the invoice and mark items as billed.')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/invoices/${invoiceId}/finalize`, {
+                    method: 'POST'
+                });
+                invoice = await response.json();
+                renderInvoice();
+                alert('Invoice finalized successfully!');
+            } catch (error) {
+                console.error('Error finalizing invoice:', error);
+                alert('Failed to finalize invoice');
+            }
+        }
+
+        async function sendInvoice() {
+            if (!confirm('Mark this invoice as sent?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/invoices/${invoiceId}/send`, {
+                    method: 'POST'
+                });
+                invoice = await response.json();
+                renderInvoice();
+                alert('Invoice marked as sent!');
+            } catch (error) {
+                console.error('Error sending invoice:', error);
+                alert('Failed to send invoice');
+            }
+        }
+
+        function openPaymentModal() {
+            document.getElementById('paymentModal').classList.remove('hidden');
+            document.getElementById('paymentAmount').value = invoice.total_amount - (invoice.paid_amount || 0);
+            document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+        }
+
+        async function submitPayment() {
+            const amount = parseFloat(document.getElementById('paymentAmount').value);
+            const paymentDate = document.getElementById('paymentDate').value;
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid payment amount');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/invoices/${invoiceId}/payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount, payment_date: paymentDate })
+                });
+                invoice = await response.json();
+                closePaymentModal();
+                renderInvoice();
+                alert('Payment recorded successfully!');
+            } catch (error) {
+                console.error('Error recording payment:', error);
+                alert('Failed to record payment');
+            }
+        }
+
+        function openEditModal() {
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editDueDate').value = invoice.due_date || '';
+            document.getElementById('editTaxRate').value = (invoice.tax_rate || 0) * 100;
+            document.getElementById('editNotes').value = invoice.notes || '';
+            document.getElementById('editTerms').value = invoice.payment_terms || '';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        async function submitEdit() {
+            const updates = {
+                due_date: document.getElementById('editDueDate').value,
+                tax_rate: parseFloat(document.getElementById('editTaxRate').value) / 100,
+                notes: document.getElementById('editNotes').value,
+                payment_terms: document.getElementById('editTerms').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/invoices/${invoiceId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                invoice = await response.json();
+                closeEditModal();
+                await fetchInvoice(); // Refresh to get recalculated totals
+                alert('Invoice updated successfully!');
+            } catch (error) {
+                console.error('Error updating invoice:', error);
+                alert('Failed to update invoice');
+            }
+        }
+
+        async function voidInvoice() {
+            if (!confirm('Void this invoice? This action cannot be undone.')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/invoices/${invoiceId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'void' })
+                });
+                invoice = await response.json();
+                renderInvoice();
+                alert('Invoice voided');
+            } catch (error) {
+                console.error('Error voiding invoice:', error);
+                alert('Failed to void invoice');
+            }
+        }
+
+        async function deleteInvoice() {
+            if (!confirm('Delete this draft invoice? This action cannot be undone.')) return;
+
+            try {
+                await fetch(`${API_BASE}/invoices/${invoiceId}`, { method: 'DELETE' });
+                alert('Invoice deleted');
+                window.location.href = 'invoices.html';
+            } catch (error) {
+                console.error('Error deleting invoice:', error);
+                alert('Failed to delete invoice');
+            }
+        }
+
+        function setToReview() {
+            if (!confirm('Move this invoice to review?')) return;
+
+            fetch(`${API_BASE}/invoices/${invoiceId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'review' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                invoice = data;
+                renderInvoice();
+                alert('Invoice moved to review');
+            });
+        }
+
+        // Rendering
+        function renderInvoice() {
+            // Title
+            const invoiceNumber = invoice.invoice_number || `Draft #${invoice.id}`;
+            document.getElementById('invoiceTitle').textContent = invoiceNumber;
+            document.getElementById('invoiceNumberDisplay').textContent = invoiceNumber;
+            document.getElementById('invoiceSubtitle').textContent = invoice.matter_name;
+
+            // Dates and status
+            document.getElementById('issueDate').textContent = formatDate(invoice.issue_date);
+            document.getElementById('dueDate').textContent = formatDate(invoice.due_date);
+            document.getElementById('statusDisplay').innerHTML = getStatusBadge(invoice.status);
+
+            // Client info
+            document.getElementById('clientName').textContent = invoice.client_name;
+            document.getElementById('clientEmail').textContent = invoice.client_email || '';
+            document.getElementById('clientAddress').textContent = invoice.client_address || '';
+
+            // Matter info
+            document.getElementById('matterInfo').textContent = `${invoice.matter_number} - ${invoice.matter_name}`;
+
+            // Line items
+            const tbody = document.getElementById('lineItemsTable');
+            tbody.innerHTML = invoice.line_items.map(item => `
+                <tr>
+                    <td class="py-3 text-sm text-gray-900">
+                        ${item.description}
+                        <span class="text-xs text-gray-500 ml-2">(${item.item_type})</span>
+                    </td>
+                    <td class="py-3 text-sm text-gray-900 text-right">
+                        ${item.quantity.toFixed(2)}
+                    </td>
+                    <td class="py-3 text-sm text-gray-900 text-right">
+                        ${formatCurrency(item.rate)}
+                    </td>
+                    <td class="py-3 text-sm text-gray-900 text-right font-medium">
+                        ${formatCurrency(item.amount)}
+                    </td>
+                </tr>
+            `).join('');
+
+            // Totals
+            document.getElementById('subtotalDisplay').textContent = formatCurrency(invoice.subtotal);
+            document.getElementById('taxDisplay').textContent = formatCurrency(invoice.tax_amount);
+            document.getElementById('totalDisplay').textContent = formatCurrency(invoice.total_amount);
+
+            // Payment info
+            if (invoice.paid_amount > 0) {
+                document.getElementById('paymentInfo').classList.remove('hidden');
+                document.getElementById('paidDisplay').textContent = formatCurrency(invoice.paid_amount);
+                const balance = invoice.total_amount - invoice.paid_amount;
+                document.getElementById('balanceDisplay').textContent = formatCurrency(balance);
+            } else {
+                document.getElementById('paymentInfo').classList.add('hidden');
+            }
+
+            // Notes and terms
+            if (invoice.notes || invoice.payment_terms) {
+                document.getElementById('notesSection').classList.remove('hidden');
+                if (invoice.notes) {
+                    document.querySelector('#notesDisplay div:last-child').textContent = invoice.notes;
+                    document.getElementById('notesDisplay').classList.remove('hidden');
+                } else {
+                    document.getElementById('notesDisplay').classList.add('hidden');
+                }
+                if (invoice.payment_terms) {
+                    document.querySelector('#termsDisplay div:last-child').textContent = invoice.payment_terms;
+                    document.getElementById('termsDisplay').classList.remove('hidden');
+                } else {
+                    document.getElementById('termsDisplay').classList.add('hidden');
+                }
+            }
+
+            // Action buttons based on status
+            renderActionButtons();
+        }
+
+        function renderActionButtons() {
+            const container = document.getElementById('actionButtons');
+            let buttons = '';
+
+            switch (invoice.status) {
+                case 'draft':
+                    buttons = `
+                        <button onclick="openEditModal()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border rounded-lg">
+                            Edit
+                        </button>
+                        <button onclick="setToReview()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
+                            Move to Review
+                        </button>
+                        <button onclick="deleteInvoice()" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-600 rounded-lg">
+                            Delete
+                        </button>
+                    `;
+                    break;
+                case 'review':
+                    buttons = `
+                        <button onclick="openEditModal()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border rounded-lg">
+                            Edit
+                        </button>
+                        <button onclick="finalizeInvoice()" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">
+                            Finalize Invoice
+                        </button>
+                    `;
+                    break;
+                case 'finalized':
+                    buttons = `
+                        <button onclick="sendInvoice()" class="px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg">
+                            Mark as Sent
+                        </button>
+                        <button onclick="voidInvoice()" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-600 rounded-lg">
+                            Void
+                        </button>
+                    `;
+                    break;
+                case 'sent':
+                    buttons = `
+                        <button onclick="openPaymentModal()" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
+                            Record Payment
+                        </button>
+                        <button onclick="voidInvoice()" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-600 rounded-lg">
+                            Void
+                        </button>
+                    `;
+                    break;
+                case 'paid':
+                    buttons = `
+                        <button onclick="window.print()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border rounded-lg">
+                            Print
+                        </button>
+                    `;
+                    break;
+                case 'void':
+                    buttons = `
+                        <span class="px-4 py-2 text-sm text-gray-500">Voided Invoice</span>
+                    `;
+                    break;
+            }
+
+            container.innerHTML = buttons;
+        }
+
+        // Initialize
+        if (invoiceId) {
+            fetchInvoice();
+        } else {
+            alert('No invoice ID provided');
+            window.location.href = 'invoices.html';
+        }
+    </script>
+</body>
+</html>

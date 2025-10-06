@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoices - Case Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="../index.html" class="text-gray-600 hover:text-gray-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <h1 class="text-2xl font-bold text-gray-900">Invoices</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="window.location.href='unbilled-time.html'" class="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                        View Unbilled
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="text-sm text-gray-500 mb-1">Total Invoices</div>
+                    <div class="text-3xl font-bold text-gray-900" id="totalInvoices">0</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="text-sm text-gray-500 mb-1">Outstanding</div>
+                    <div class="text-3xl font-bold text-orange-600" id="outstandingAmount">$0.00</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="text-sm text-gray-500 mb-1">Paid This Month</div>
+                    <div class="text-3xl font-bold text-green-600" id="paidAmount">$0.00</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="text-sm text-gray-500 mb-1">Draft Invoices</div>
+                    <div class="text-3xl font-bold text-gray-600" id="draftCount">0</div>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="p-6 border-b">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <!-- Search -->
+                        <div class="relative">
+                            <input
+                                type="text"
+                                id="searchInput"
+                                placeholder="Search invoices..."
+                                class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                            <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            <button
+                                id="clearSearch"
+                                onclick="clearSearch()"
+                                class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 hidden"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <select id="statusFilter" class="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Statuses</option>
+                            <option value="draft">Draft</option>
+                            <option value="review">Review</option>
+                            <option value="finalized">Finalized</option>
+                            <option value="sent">Sent</option>
+                            <option value="paid">Paid</option>
+                            <option value="void">Void</option>
+                        </select>
+
+                        <!-- Client Filter -->
+                        <select id="clientFilter" class="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Clients</option>
+                        </select>
+
+                        <!-- Matter Filter -->
+                        <select id="matterFilter" class="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            <option value="">All Matters</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Invoices Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b">
+                            <tr>
+                                <th onclick="sortTable('invoice_number')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    Invoice # <span id="sort-invoice_number" class="ml-1">↕</span>
+                                </th>
+                                <th onclick="sortTable('client_name')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    Client <span id="sort-client_name" class="ml-1">↕</span>
+                                </th>
+                                <th onclick="sortTable('matter_name')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    Matter <span id="sort-matter_name" class="ml-1">↕</span>
+                                </th>
+                                <th onclick="sortTable('issue_date')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    Issue Date <span id="sort-issue_date" class="ml-1">↕</span>
+                                </th>
+                                <th onclick="sortTable('due_date')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    Due Date <span id="sort-due_date" class="ml-1">↕</span>
+                                </th>
+                                <th onclick="sortTable('total_amount')" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    Amount <span id="sort-total_amount" class="ml-1">↕</span>
+                                </th>
+                                <th onclick="sortTable('status')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    Status <span id="sort-status" class="ml-1">↕</span>
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoicesTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-12 hidden">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No invoices found</h3>
+                    <p class="mt-1 text-sm text-gray-500">Get started by creating an invoice from unbilled time.</p>
+                    <div class="mt-6">
+                        <button onclick="window.location.href='unbilled-time.html'" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            View Unbilled Time
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api/v1';
+
+        let allInvoices = [];
+        let filteredInvoices = [];
+        let sortColumn = 'created_at';
+        let sortDirection = 'desc';
+        let searchTerm = '';
+
+        // Utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'draft': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Draft</span>',
+                'review': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Review</span>',
+                'finalized': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">Finalized</span>',
+                'sent': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Sent</span>',
+                'paid': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Paid</span>',
+                'void': '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Void</span>'
+            };
+            return badges[status] || status;
+        }
+
+        // API calls
+        async function fetchInvoices() {
+            try {
+                const response = await fetch(`${API_BASE}/invoices`);
+                allInvoices = await response.json();
+                applyFilters();
+                updateSummaryCards();
+            } catch (error) {
+                console.error('Error fetching invoices:', error);
+            }
+        }
+
+        async function fetchClients() {
+            try {
+                const response = await fetch(`${API_BASE}/clients`);
+                const clients = await response.json();
+                const select = document.getElementById('clientFilter');
+                clients.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.id;
+                    option.textContent = client.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching clients:', error);
+            }
+        }
+
+        async function fetchMatters() {
+            try {
+                const response = await fetch(`${API_BASE}/matters`);
+                const matters = await response.json();
+                const select = document.getElementById('matterFilter');
+                matters.forEach(matter => {
+                    const option = document.createElement('option');
+                    option.value = matter.id;
+                    option.textContent = `${matter.client_name} - ${matter.name}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching matters:', error);
+            }
+        }
+
+        // Filtering and sorting
+        function applyFilters() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const clientFilter = document.getElementById('clientFilter').value;
+            const matterFilter = document.getElementById('matterFilter').value;
+
+            filteredInvoices = allInvoices.filter(invoice => {
+                // Search filter
+                if (searchTerm) {
+                    const search = searchTerm.toLowerCase();
+                    const matchesSearch =
+                        (invoice.invoice_number && invoice.invoice_number.toLowerCase().includes(search)) ||
+                        (invoice.client_name && invoice.client_name.toLowerCase().includes(search)) ||
+                        (invoice.matter_name && invoice.matter_name.toLowerCase().includes(search));
+                    if (!matchesSearch) return false;
+                }
+
+                // Status filter
+                if (statusFilter && invoice.status !== statusFilter) return false;
+
+                // Client filter
+                if (clientFilter && invoice.client_id != clientFilter) return false;
+
+                // Matter filter
+                if (matterFilter && invoice.matter_id != matterFilter) return false;
+
+                return true;
+            });
+
+            sortInvoices();
+            renderTable();
+        }
+
+        function sortInvoices() {
+            filteredInvoices.sort((a, b) => {
+                let aVal = a[sortColumn];
+                let bVal = b[sortColumn];
+
+                // Handle nulls
+                if (aVal === null || aVal === undefined) aVal = '';
+                if (bVal === null || bVal === undefined) bVal = '';
+
+                // Compare
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+
+                let comparison = 0;
+                if (aVal > bVal) comparison = 1;
+                if (aVal < bVal) comparison = -1;
+
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
+
+            updateSortIndicators();
+        }
+
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            sortInvoices();
+            renderTable();
+        }
+
+        function updateSortIndicators() {
+            document.querySelectorAll('[id^="sort-"]').forEach(el => {
+                el.textContent = '↕';
+            });
+            const indicator = document.getElementById(`sort-${sortColumn}`);
+            if (indicator) {
+                indicator.textContent = sortDirection === 'asc' ? '↑' : '↓';
+            }
+        }
+
+        function performSearch() {
+            searchTerm = document.getElementById('searchInput').value;
+            const clearBtn = document.getElementById('clearSearch');
+            if (searchTerm) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            applyFilters();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchTerm = '';
+            document.getElementById('clearSearch').classList.add('hidden');
+            applyFilters();
+        }
+
+        // Rendering
+        function renderTable() {
+            const tbody = document.getElementById('invoicesTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filteredInvoices.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            tbody.innerHTML = filteredInvoices.map(invoice => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a href="invoice-detail.html?id=${invoice.id}" class="text-blue-600 hover:text-blue-800 font-medium">
+                            ${invoice.invoice_number || `Draft #${invoice.id}`}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${invoice.client_name || '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${invoice.matter_name || '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${formatDate(invoice.issue_date)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${formatDate(invoice.due_date)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                        ${formatCurrency(invoice.total_amount)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${getStatusBadge(invoice.status)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="invoice-detail.html?id=${invoice.id}" class="text-blue-600 hover:text-blue-900">View</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateSummaryCards() {
+            const totalInvoices = allInvoices.length;
+            const outstanding = allInvoices
+                .filter(i => i.status === 'sent' || i.status === 'finalized')
+                .reduce((sum, i) => sum + (i.total_amount - (i.paid_amount || 0)), 0);
+
+            const thisMonth = new Date();
+            thisMonth.setDate(1);
+            const paidThisMonth = allInvoices
+                .filter(i => i.status === 'paid' && i.paid_at && new Date(i.paid_at) >= thisMonth)
+                .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+
+            const draftCount = allInvoices.filter(i => i.status === 'draft').length;
+
+            document.getElementById('totalInvoices').textContent = totalInvoices;
+            document.getElementById('outstandingAmount').textContent = formatCurrency(outstanding);
+            document.getElementById('paidAmount').textContent = formatCurrency(paidThisMonth);
+            document.getElementById('draftCount').textContent = draftCount;
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', performSearch);
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('clientFilter').addEventListener('change', applyFilters);
+        document.getElementById('matterFilter').addEventListener('change', applyFilters);
+
+        // Initialize
+        async function init() {
+            await Promise.all([
+                fetchInvoices(),
+                fetchClients(),
+                fetchMatters()
+            ]);
+        }
+
+        init();
+    </script>
+</body>
+</html>

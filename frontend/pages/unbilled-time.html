@@ -34,6 +34,9 @@
                         <a href="unbilled-time.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Unbilled Time
                         </a>
+                        <a href="invoices.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Invoices
+                        </a>
                     </div>
                 </div>
                 <div class="flex items-center">
@@ -436,14 +439,58 @@
             }
         }
 
-        function createInvoiceFromSelected() {
+        async function createInvoiceFromSelected() {
             if (selectedEntries.size === 0) {
                 alert('Please select entries to create an invoice');
                 return;
             }
 
-            // TODO: Implement invoice creation
-            alert(`Creating invoice for ${selectedEntries.size} entries (not yet implemented)`);
+            // Get the selected entries
+            const selectedEntryObjects = allEntries.filter(e => selectedEntries.has(e.id));
+
+            // Validate all entries are from the same matter
+            const matterIds = [...new Set(selectedEntryObjects.map(e => e.matter_id))];
+            if (matterIds.length > 1) {
+                alert('All selected entries must be from the same matter to create an invoice.');
+                return;
+            }
+
+            const matterId = matterIds[0];
+            const entry = selectedEntryObjects[0];
+            const clientId = entry.client_id;
+
+            if (!matterId || !clientId) {
+                alert('Unable to determine matter or client for selected entries.');
+                return;
+            }
+
+            if (!confirm(`Create invoice for ${selectedEntries.size} time entries from ${entry.matter_name}?`)) {
+                return;
+            }
+
+            try {
+                // Create invoice with selected time entries
+                const response = await fetch('http://localhost:3000/api/v1/invoices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        matter_id: matterId,
+                        client_id: clientId,
+                        time_entry_ids: Array.from(selectedEntries),
+                        issue_date: new Date().toISOString().split('T')[0],
+                        payment_terms: 'Due upon receipt'
+                    })
+                });
+
+                const invoice = await response.json();
+                alert('Invoice created successfully!');
+
+                // Redirect to invoice detail page
+                window.location.href = `invoice-detail.html?id=${invoice.id}`;
+            } catch (error) {
+                console.error('Error creating invoice:', error);
+                alert('Failed to create invoice');
+            }
         }
 
         async function viewEntry(entryId) {
