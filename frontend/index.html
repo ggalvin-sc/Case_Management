@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Management - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-xl font-bold text-gray-800">Case Management</h1>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="index.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Dashboard
+                        </a>
+                        <a href="pages/matters.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Matters
+                        </a>
+                        <a href="pages/billing.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Time Entry
+                        </a>
+                        <a href="pages/expenses.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Expenses
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-700 mr-4" id="userDisplay">User</span>
+                    <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            <!-- Active Matters -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-briefcase text-3xl text-blue-500"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Active Matters</dt>
+                                <dd class="flex items-baseline">
+                                    <div class="text-2xl font-semibold text-gray-900" id="activeMatters">0</div>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unbilled Time -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock text-3xl text-green-500"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Unbilled Hours</dt>
+                                <dd class="flex items-baseline">
+                                    <div class="text-2xl font-semibold text-gray-900" id="unbilledHours">0</div>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unbilled Amount -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-dollar-sign text-3xl text-yellow-500"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Unbilled Amount</dt>
+                                <dd class="flex items-baseline">
+                                    <div class="text-2xl font-semibold text-gray-900" id="unbilledAmount">$0</div>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Revenue -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-chart-line text-3xl text-purple-500"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">This Month</dt>
+                                <dd class="flex items-baseline">
+                                    <div class="text-2xl font-semibold text-gray-900" id="monthRevenue">$0</div>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Recent Activity -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Quick Actions -->
+            <div class="lg:col-span-1">
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                    <div class="space-y-3">
+                        <a href="pages/matters.html?action=new" class="block w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-center">
+                            <i class="fas fa-plus mr-2"></i>New Matter
+                        </a>
+                        <a href="pages/billing.html?action=new" class="block w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded text-center">
+                            <i class="fas fa-clock mr-2"></i>Log Time
+                        </a>
+                        <a href="pages/expenses.html?action=new" class="block w-full bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded text-center">
+                            <i class="fas fa-receipt mr-2"></i>Add Expense
+                        </a>
+                        <button onclick="syncKimai()" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded">
+                            <i class="fas fa-sync mr-2"></i>Sync Kimai
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="lg:col-span-2">
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Activity</h3>
+                    <div id="recentActivity" class="space-y-4">
+                        <!-- Activity items will be loaded here -->
+                        <p class="text-gray-500 text-center py-8">Loading activity...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const stats = await api.get('/dashboard/stats');
+
+                document.getElementById('activeMatters').textContent = stats.activeMatters || 0;
+                document.getElementById('unbilledHours').textContent = stats.unbilledHours || 0;
+                document.getElementById('unbilledAmount').textContent = formatCurrency(stats.unbilledAmount || 0);
+                document.getElementById('monthRevenue').textContent = formatCurrency(stats.monthRevenue || 0);
+
+                loadRecentActivity();
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        async function loadRecentActivity() {
+            try {
+                const activities = await api.get('/dashboard/activity');
+                const container = document.getElementById('recentActivity');
+
+                if (activities.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-8">No recent activity</p>';
+                    return;
+                }
+
+                container.innerHTML = activities.map(activity => `
+                    <div class="flex items-start space-x-3 pb-4 border-b last:border-0">
+                        <div class="flex-shrink-0">
+                            <i class="fas ${getActivityIcon(activity.type)} text-gray-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm text-gray-900">${activity.description}</p>
+                            <p class="text-sm text-gray-500">${formatDate(activity.timestamp)}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading activity:', error);
+            }
+        }
+
+        async function syncKimai() {
+            try {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Syncing...';
+
+                const result = await api.post('/sync/kimai/timesheets');
+
+                alert(`Synced ${result.count} time entries from Kimai`);
+                loadDashboard();
+            } catch (error) {
+                alert('Error syncing with Kimai: ' + error.message);
+            } finally {
+                event.target.disabled = false;
+                event.target.innerHTML = '<i class="fas fa-sync mr-2"></i>Sync Kimai';
+            }
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                'time_entry': 'fa-clock',
+                'expense': 'fa-receipt',
+                'invoice': 'fa-file-invoice',
+                'matter': 'fa-briefcase',
+            };
+            return icons[type] || 'fa-circle';
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            if (diffDays < 7) return `${diffDays} days ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>

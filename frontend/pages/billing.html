@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Entry - Case Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-xl font-bold text-gray-800">Case Management</h1>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="../index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Dashboard
+                        </a>
+                        <a href="matters.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Matters
+                        </a>
+                        <a href="billing.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Time Entry
+                        </a>
+                        <a href="expenses.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Expenses
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-700 mr-4" id="userDisplay">User</span>
+                    <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Time Entry Form -->
+            <div class="lg:col-span-2">
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6">Log Time Entry</h2>
+
+                    <form id="timeEntryForm" class="space-y-6">
+                        <!-- Date -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                            <input type="date" id="entryDate" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        </div>
+
+                        <!-- Matter Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Matter *</label>
+                            <select id="matterSelect" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <option value="">Select Matter...</option>
+                            </select>
+                        </div>
+
+                        <!-- Activity Code -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Activity</label>
+                            <select id="activityCode" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                <option value="">Select Activity...</option>
+                                <option value="research">Legal Research</option>
+                                <option value="drafting">Drafting</option>
+                                <option value="court">Court Appearance</option>
+                                <option value="meeting">Client Meeting</option>
+                                <option value="phone">Phone Call</option>
+                                <option value="email">Email</option>
+                                <option value="review">Document Review</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Time Input Method -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Time Entry Method</label>
+                            <div class="flex space-x-4 mb-3">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="timeMethod" value="duration" checked class="mr-2">
+                                    <span class="text-sm">Duration</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="timeMethod" value="startend" class="mr-2">
+                                    <span class="text-sm">Start/End Time</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Duration Input -->
+                        <div id="durationInput">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration *</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <input type="number" id="hours" min="0" placeholder="Hours" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <input type="number" id="minutes" min="0" max="59" step="6" placeholder="Minutes" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Start/End Time Input -->
+                        <div id="startEndInput" class="hidden">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                    <input type="time" id="startTime" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                    <input type="time" id="endTime" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-1">Duration: <span id="calculatedDuration">0:00</span></p>
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                            <textarea id="description" required rows="4" placeholder="Detailed description of work performed..." class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Be specific about the work performed</p>
+                        </div>
+
+                        <!-- Rate & Billable -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Hourly Rate</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+                                    <input type="number" id="hourlyRate" step="0.01" class="w-full border border-gray-300 rounded-md pl-7 pr-3 py-2 text-sm">
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Leave blank to use matter default</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Billable</label>
+                                <select id="billable" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                    <option value="true">Billable</option>
+                                    <option value="false">Non-Billable</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Calculated Amount -->
+                        <div class="bg-gray-50 rounded-md p-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-gray-700">Calculated Amount:</span>
+                                <span id="calculatedAmount" class="text-2xl font-bold text-gray-900">$0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="flex space-x-3 pt-4 border-t">
+                            <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded">
+                                <i class="fas fa-save mr-2"></i>Save Entry
+                            </button>
+                            <button type="button" onclick="resetForm()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                Clear
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Entries -->
+            <div class="lg:col-span-1">
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Entries</h3>
+                    <div id="recentEntries" class="space-y-3">
+                        <p class="text-sm text-gray-500 text-center py-4">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Quick Timer -->
+                <div class="bg-white shadow rounded-lg p-6 mt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Timer</h3>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-gray-900 mb-4" id="timerDisplay">00:00:00</div>
+                        <div class="space-y-2">
+                            <button id="timerBtn" onclick="toggleTimer()" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded">
+                                <i class="fas fa-play mr-2"></i>Start Timer
+                            </button>
+                            <button onclick="saveTimer()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded" id="saveTimerBtn" disabled>
+                                <i class="fas fa-save mr-2"></i>Save to Entry
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let timerRunning = false;
+
+        async function loadMatters() {
+            try {
+                const matters = await api.get('/matters', { status: 'active' });
+                const select = document.getElementById('matterSelect');
+                select.innerHTML = '<option value="">Select Matter...</option>' +
+                    matters.map(m => `<option value="${m.id}" data-rate="${m.hourly_rate || ''}">${m.matter_number} - ${m.name}</option>`).join('');
+
+                // Pre-select if matter_id in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const matterId = urlParams.get('matter_id');
+                if (matterId) {
+                    select.value = matterId;
+                    updateRate();
+                }
+            } catch (error) {
+                console.error('Error loading matters:', error);
+            }
+        }
+
+        async function loadRecentEntries() {
+            try {
+                const entries = await api.get('/time-entries', { limit: 5, orderBy: 'entry_date', order: 'DESC' });
+                const container = document.getElementById('recentEntries');
+
+                if (entries.length === 0) {
+                    container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No recent entries</p>';
+                    return;
+                }
+
+                container.innerHTML = entries.map(entry => `
+                    <div class="border-b pb-3 last:border-0">
+                        <p class="text-sm font-medium text-gray-900">${entry.matter_name}</p>
+                        <p class="text-xs text-gray-500">${formatDate(entry.entry_date)} - ${(entry.duration_minutes / 60).toFixed(2)}h</p>
+                        <p class="text-xs text-gray-600 mt-1">${truncate(entry.description, 50)}</p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading recent entries:', error);
+            }
+        }
+
+        function updateRate() {
+            const select = document.getElementById('matterSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            const rate = selectedOption.getAttribute('data-rate');
+
+            if (rate) {
+                document.getElementById('hourlyRate').value = rate;
+            }
+
+            calculateAmount();
+        }
+
+        function calculateAmount() {
+            const hours = parseFloat(document.getElementById('hours').value) || 0;
+            const minutes = parseFloat(document.getElementById('minutes').value) || 0;
+            const rate = parseFloat(document.getElementById('hourlyRate').value) || 0;
+
+            const totalHours = hours + (minutes / 60);
+            const amount = totalHours * rate;
+
+            document.getElementById('calculatedAmount').textContent = formatCurrency(amount);
+        }
+
+        function toggleTimeMethod() {
+            const method = document.querySelector('input[name="timeMethod"]:checked').value;
+            const durationInput = document.getElementById('durationInput');
+            const startEndInput = document.getElementById('startEndInput');
+
+            if (method === 'duration') {
+                durationInput.classList.remove('hidden');
+                startEndInput.classList.add('hidden');
+            } else {
+                durationInput.classList.add('hidden');
+                startEndInput.classList.remove('hidden');
+                calculateDuration();
+            }
+        }
+
+        function calculateDuration() {
+            const start = document.getElementById('startTime').value;
+            const end = document.getElementById('endTime').value;
+
+            if (start && end) {
+                const startDate = new Date(`2000-01-01T${start}`);
+                const endDate = new Date(`2000-01-01T${end}`);
+                const diff = (endDate - startDate) / 1000 / 60; // minutes
+
+                if (diff > 0) {
+                    const hours = Math.floor(diff / 60);
+                    const minutes = diff % 60;
+
+                    document.getElementById('calculatedDuration').textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
+
+                    // Update duration inputs
+                    document.getElementById('hours').value = hours;
+                    document.getElementById('minutes').value = minutes;
+
+                    calculateAmount();
+                }
+            }
+        }
+
+        function toggleTimer() {
+            if (timerRunning) {
+                // Stop timer
+                clearInterval(timerInterval);
+                timerRunning = false;
+                document.getElementById('timerBtn').innerHTML = '<i class="fas fa-play mr-2"></i>Start Timer';
+                document.getElementById('timerBtn').className = 'w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded';
+                document.getElementById('saveTimerBtn').disabled = false;
+            } else {
+                // Start timer
+                timerInterval = setInterval(() => {
+                    timerSeconds++;
+                    updateTimerDisplay();
+                }, 1000);
+                timerRunning = true;
+                document.getElementById('timerBtn').innerHTML = '<i class="fas fa-stop mr-2"></i>Stop Timer';
+                document.getElementById('timerBtn').className = 'w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded';
+                document.getElementById('saveTimerBtn').disabled = true;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(timerSeconds / 3600);
+            const minutes = Math.floor((timerSeconds % 3600) / 60);
+            const seconds = timerSeconds % 60;
+
+            document.getElementById('timerDisplay').textContent =
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function saveTimer() {
+            if (timerSeconds === 0) return;
+
+            const hours = Math.floor(timerSeconds / 3600);
+            const minutes = Math.floor((timerSeconds % 3600) / 60);
+
+            document.getElementById('hours').value = hours;
+            document.getElementById('minutes').value = minutes;
+
+            calculateAmount();
+
+            // Reset timer
+            timerSeconds = 0;
+            updateTimerDisplay();
+            document.getElementById('saveTimerBtn').disabled = true;
+        }
+
+        function resetForm() {
+            document.getElementById('timeEntryForm').reset();
+            document.getElementById('entryDate').valueAsDate = new Date();
+            document.getElementById('calculatedAmount').textContent = '$0.00';
+        }
+
+        document.getElementById('timeEntryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const hours = parseFloat(document.getElementById('hours').value) || 0;
+            const minutes = parseFloat(document.getElementById('minutes').value) || 0;
+            const durationMinutes = (hours * 60) + minutes;
+
+            if (durationMinutes === 0) {
+                alert('Please enter a duration');
+                return;
+            }
+
+            const data = {
+                matter_id: document.getElementById('matterSelect').value,
+                entry_date: document.getElementById('entryDate').value,
+                duration_minutes: durationMinutes,
+                description: document.getElementById('description').value,
+                activity_code: document.getElementById('activityCode').value,
+                hourly_rate: parseFloat(document.getElementById('hourlyRate').value) || null,
+                billable: document.getElementById('billable').value === 'true',
+            };
+
+            try {
+                await api.post('/time-entries', data);
+                alert('Time entry saved successfully!');
+                resetForm();
+                loadRecentEntries();
+            } catch (error) {
+                alert('Error saving time entry: ' + error.message);
+            }
+        });
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString();
+        }
+
+        function truncate(str, length) {
+            return str.length > length ? str.substring(0, length) + '...' : str;
+        }
+
+        // Event listeners
+        document.getElementById('matterSelect').addEventListener('change', updateRate);
+        document.getElementById('hours').addEventListener('input', calculateAmount);
+        document.getElementById('minutes').addEventListener('input', calculateAmount);
+        document.getElementById('hourlyRate').addEventListener('input', calculateAmount);
+        document.querySelectorAll('input[name="timeMethod"]').forEach(radio => {
+            radio.addEventListener('change', toggleTimeMethod);
+        });
+        document.getElementById('startTime').addEventListener('change', calculateDuration);
+        document.getElementById('endTime').addEventListener('change', calculateDuration);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadMatters();
+            loadRecentEntries();
+            document.getElementById('entryDate').valueAsDate = new Date();
+        });
+    </script>
+</body>
+</html>
