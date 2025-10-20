@@ -1,0 +1,516 @@
+{
+  "fonts": {
+    "body": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", sans-serif",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "24px",
+      "letterSpacing": "normal",
+      "color": "rgb(20, 20, 21)",
+      "textTransform": "none"
+    },
+    "h1": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", sans-serif",
+      "fontSize": "56px",
+      "fontWeight": "600",
+      "lineHeight": "67.2px",
+      "letterSpacing": "normal",
+      "color": "rgb(20, 20, 21)",
+      "textTransform": "none"
+    },
+    "h2": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", sans-serif",
+      "fontSize": "44px",
+      "fontWeight": "600",
+      "lineHeight": "52.8px",
+      "letterSpacing": "normal",
+      "color": "rgb(250, 250, 250)",
+      "textTransform": "none"
+    },
+    "h3": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", sans-serif",
+      "fontSize": "20px",
+      "fontWeight": "500",
+      "lineHeight": "28px",
+      "letterSpacing": "normal",
+      "color": "rgb(250, 250, 250)",
+      "textTransform": "none"
+    },
+    "p": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", sans-serif",
+      "fontSize": "20px",
+      "fontWeight": "400",
+      "lineHeight": "32px",
+      "letterSpacing": "normal",
+      "color": "rgb(67, 67, 68)",
+      "textTransform": "none"
+    },
+    "button": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", sans-serif",
+      "fontSize": "13px",
+      "fontWeight": "500",
+      "lineHeight": "22px",
+      "letterSpacing": "normal",
+      "color": "rgb(72, 73, 70)",
+      "textTransform": "none"
+    },
+    "a": {
+      "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", sans-serif",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "24px",
+      "letterSpacing": "normal",
+      "color": "rgb(20, 20, 21)",
+      "textTransform": "none"
+    }
+  },
+  "colors": [
+    "rgb(20, 20, 21)",
+    "rgb(72, 73, 70)",
+    "rgb(243, 91, 34)",
+    "rgb(255, 255, 255)",
+    "rgb(67, 67, 68)",
+    "rgb(250, 250, 250)",
+    "rgb(208, 208, 208)",
+    "rgb(227, 227, 237)",
+    "rgb(171, 178, 191)",
+    "rgb(209, 154, 102)",
+    "rgb(86, 182, 194)",
+    "rgb(137, 191, 250)",
+    "rgb(110, 111, 108)",
+    "rgb(160, 160, 157)",
+    "rgb(137, 137, 138)",
+    "rgb(193, 193, 190)",
+    "rgb(98, 176, 109)"
+  ],
+  "backgroundColors": [
+    "rgb(255, 255, 255)",
+    "rgba(255, 255, 255, 0)",
+    "rgb(254, 254, 253)",
+    "rgb(243, 91, 34)",
+    "rgb(32, 32, 33)",
+    "rgb(20, 20, 21)",
+    "rgb(67, 67, 68)",
+    "rgb(43, 43, 43)",
+    "rgb(232, 232, 232)",
+    "rgb(250, 250, 248)",
+    "rgb(98, 176, 109)"
+  ],
+  "buttons": [
+    {
+      "className": "Header-module--link--c84b4",
+      "padding": "3px 10px",
+      "borderRadius": "4px",
+      "fontSize": "13px",
+      "fontWeight": "500",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(72, 73, 70)",
+      "border": "0px none rgb(72, 73, 70)",
+      "textTransform": "none",
+      "transition": "color 0.25s"
+    },
+    {
+      "className": "Header-module--link--c84b4",
+      "padding": "3px 10px",
+      "borderRadius": "4px",
+      "fontSize": "13px",
+      "fontWeight": "500",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(72, 73, 70)",
+      "border": "0px none rgb(72, 73, 70)",
+      "textTransform": "none",
+      "transition": "color 0.25s"
+    },
+    {
+      "className": "Header-module--link--c84b4",
+      "padding": "3px 10px",
+      "borderRadius": "4px",
+      "fontSize": "13px",
+      "fontWeight": "500",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(72, 73, 70)",
+      "border": "0px none rgb(72, 73, 70)",
+      "textTransform": "none",
+      "transition": "color 0.25s"
+    },
+    {
+      "className": "Header-module--link--c84b4",
+      "padding": "3px 10px",
+      "borderRadius": "4px",
+      "fontSize": "13px",
+      "fontWeight": "500",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(72, 73, 70)",
+      "border": "0px none rgb(72, 73, 70)",
+      "textTransform": "none",
+      "transition": "color 0.25s"
+    },
+    {
+      "className": "Header-module--link--c84b4",
+      "padding": "3px 10px",
+      "borderRadius": "4px",
+      "fontSize": "13px",
+      "fontWeight": "500",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(72, 73, 70)",
+      "border": "0px none rgb(72, 73, 70)",
+      "textTransform": "none",
+      "transition": "color 0.25s"
+    },
+    {
+      "className": "Button-module--button--3b10c Button-module--ghost--fa06a Button-module--small--f04c2 Header-module--desktopOnly--c2538 Header-module--loginLink--88087",
+      "padding": "0px",
+      "borderRadius": "6px",
+      "fontSize": "12px",
+      "fontWeight": "500",
+      "backgroundColor": "rgba(255, 255, 255, 0)",
+      "color": "rgb(243, 91, 34)",
+      "border": "0px none rgb(243, 91, 34)",
+      "textTransform": "none",
+      "transition": "color 0.25s"
+    },
+    {
+      "className": "Button-module--button--3b10c Button-module--primaryOutlined--c12e0 Button-module--small--f04c2 Header-module--button--5a43c",
+      "padding": "8px 14px",
+      "borderRadius": "6px",
+      "fontSize": "12px",
+      "fontWeight": "500",
+      "backgroundColor": "rgb(254, 254, 253)",
+      "color": "rgb(243, 91, 34)",
+      "border": "0.666667px solid rgb(243, 91, 34)",
+      "textTransform": "none",
+      "transition": "background-color 0.25s, border 0.25s, opacity 0.25s, color 0.25s, box-shadow 0.25s"
+    },
+    {
+      "className": "Button-module--button--3b10c Button-module--primary--379ca Button-module--small--f04c2 Header-module--signupButton--6c594",
+      "padding": "8px 14px",
+      "borderRadius": "6px",
+      "fontSize": "12px",
+      "fontWeight": "500",
+      "backgroundColor": "rgb(243, 91, 34)",
+      "color": "rgb(255, 255, 255)",
+      "border": "0.666667px solid rgb(190, 64, 15)",
+      "textTransform": "none",
+      "transition": "background-color 0.25s, border 0.25s, opacity 0.25s, color 0.25s"
+    },
+    {
+      "className": "Header-module--mobileToggler--1dde0",
+      "padding": "0px",
+      "borderRadius": "0px",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(0, 0, 0)",
+      "border": "0px none rgb(0, 0, 0)",
+      "textTransform": "none",
+      "transition": "0.5s ease-in-out"
+    },
+    {
+      "className": "Button-module--button--3b10c Button-module--primary--379ca Button-module--large--57ca4",
+      "padding": "10px 20px",
+      "borderRadius": "6px",
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "backgroundColor": "rgb(243, 91, 34)",
+      "color": "rgb(255, 255, 255)",
+      "border": "0.666667px solid rgb(190, 64, 15)",
+      "textTransform": "none",
+      "transition": "background-color 0.25s, border 0.25s, opacity 0.25s, color 0.25s"
+    },
+    {
+      "className": "Button-module--button--3b10c Button-module--primaryOutlined--c12e0 Button-module--large--57ca4",
+      "padding": "10px 20px",
+      "borderRadius": "6px",
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "backgroundColor": "rgb(254, 254, 253)",
+      "color": "rgb(243, 91, 34)",
+      "border": "0.666667px solid rgb(243, 91, 34)",
+      "textTransform": "none",
+      "transition": "background-color 0.25s, border 0.25s, opacity 0.25s, color 0.25s, box-shadow 0.25s"
+    },
+    {
+      "className": "DiagramSection-module--selectButton--e507e DiagramSection-module--showButton--56426",
+      "padding": "0px 19px",
+      "borderRadius": "5px",
+      "fontSize": "12px",
+      "fontWeight": "600",
+      "backgroundColor": "rgb(67, 67, 68)",
+      "color": "rgb(250, 250, 250)",
+      "border": "0px none rgb(250, 250, 250)",
+      "textTransform": "none",
+      "transition": "background-color 0.5s, opacity 0.5s"
+    },
+    {
+      "className": "DiagramSection-module--selectButton--e507e",
+      "padding": "0px 19px",
+      "borderRadius": "5px",
+      "fontSize": "12px",
+      "fontWeight": "600",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(250, 250, 250)",
+      "border": "0px none rgb(250, 250, 250)",
+      "textTransform": "none",
+      "transition": "background-color 0.5s, opacity 0.5s"
+    },
+    {
+      "className": "DiagramSection-module--selectButton--e507e DiagramSection-module--showButton--56426",
+      "padding": "0px 19px",
+      "borderRadius": "5px",
+      "fontSize": "12px",
+      "fontWeight": "600",
+      "backgroundColor": "rgb(67, 67, 68)",
+      "color": "rgb(250, 250, 250)",
+      "border": "0px none rgb(250, 250, 250)",
+      "textTransform": "none",
+      "transition": "background-color 0.5s, opacity 0.5s"
+    },
+    {
+      "className": "DiagramSection-module--selectButton--e507e",
+      "padding": "0px 19px",
+      "borderRadius": "5px",
+      "fontSize": "12px",
+      "fontWeight": "600",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(250, 250, 250)",
+      "border": "0px none rgb(250, 250, 250)",
+      "textTransform": "none",
+      "transition": "background-color 0.5s, opacity 0.5s"
+    },
+    {
+      "className": "Button-module--button--3b10c Button-module--white--729c1 Button-module--large--57ca4 BannerSection-module--button--b26f3",
+      "padding": "10px 20px",
+      "borderRadius": "6px",
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "backgroundColor": "rgb(255, 255, 255)",
+      "color": "rgb(0, 0, 0)",
+      "border": "0.666667px solid rgb(0, 0, 0)",
+      "textTransform": "none",
+      "transition": "background-color 0.25s, border 0.25s, opacity 0.25s, color 0.25s"
+    },
+    {
+      "className": "SubscribeNewsletterForm-module--arrowButton--9d7e5",
+      "padding": "0px",
+      "borderRadius": "0px",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(0, 0, 0)",
+      "border": "0px none rgb(0, 0, 0)",
+      "textTransform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "SubscribeNewsletterForm-module--arrowButton--9d7e5",
+      "padding": "0px",
+      "borderRadius": "0px",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(0, 0, 0)",
+      "border": "0px none rgb(0, 0, 0)",
+      "textTransform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "ClerkLikeChatBubble-module--root--3f262",
+      "padding": "4px",
+      "borderRadius": "50%",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(0, 0, 0)",
+      "border": "0.666667px dashed rgb(228, 229, 225)",
+      "textTransform": "none",
+      "transition": "all"
+    }
+  ],
+  "spacing": {
+    "margins": [
+      "0px 75px 0px 0px",
+      "0px auto",
+      "0px 0px 0px 8px",
+      "0px 0px 48px",
+      "0px 20px 0px 0px"
+    ],
+    "paddings": [
+      "0px 20px",
+      "96px 20px 180px",
+      "96px 0px",
+      "0px 0px 172px",
+      "4px",
+      "13px 36px 45px 26px",
+      "136px 0px 168px",
+      "0px 0px 64px",
+      "0px 0px 0px 19px",
+      "0px 53px 0px 0px",
+      "0px 0px 32px",
+      "32px 0px",
+      "32px 0px 0px",
+      "0px 0px 184px",
+      "80px 0px 0px",
+      "32px",
+      "32px 0px 24px",
+      "0px 0px 168px",
+      "56px",
+      "2px 6px",
+      "0px 20px 32px",
+      "20px 24px"
+    ],
+    "gaps": [
+      "normal 12px",
+      "normal 32px",
+      "normal 16px",
+      "normal 8.2px",
+      "8px normal",
+      "normal 24px"
+    ]
+  },
+  "borderRadii": [
+    "4px",
+    "6px",
+    "8px",
+    "5px",
+    "8px 8px 0px 0px",
+    "50%",
+    "16px"
+  ],
+  "shadows": [
+    "rgba(24, 25, 22, 0.02) 0px 2px 1px 0px, rgba(24, 25, 22, 0.1) 0px -1px 0px 0px inset",
+    "rgba(255, 255, 255, 0.2) 0px 1px 0px 0px inset, rgba(24, 25, 22, 0.06) 0px 1px 2px 0px, rgba(24, 25, 22, 0.1) 0px -1px 0px 0px inset",
+    "rgba(20, 20, 21, 0.02) 0px 3px 2px 0px, rgba(115, 115, 115, 0.15) 0px 0px 1px 0px, rgba(20, 20, 21, 0.04) 0px 7px 6px 0px, rgba(20, 20, 21, 0.03) 0px 12px 10px 0px, rgba(20, 20, 21, 0.03) 0px 22px 18px 0px, rgba(20, 20, 21, 0.02) 0px 42px 33px 0px, rgba(20, 20, 21, 0.02) 0px 100px 80px 0px",
+    "rgba(209, 209, 209, 0.15) 0px 2px 4px 0px",
+    "rgba(161, 161, 161, 0.15) 0px 4px 15px 0px, rgba(232, 232, 232, 0.35) 0px 0px 1px 0px",
+    "rgba(24, 25, 22, 0.06) 0px -1px 0px 0px inset",
+    "rgba(190, 64, 15, 0.1) 0px -1px 0px 0px inset, rgba(255, 255, 255, 0.1) 0px 1.5px 0px 0px inset, rgba(0, 0, 0, 0.03) 0px 0.5px 0px 0px",
+    "rgba(255, 255, 255, 0.2) 0px 1px 0px 0px inset, rgba(24, 25, 22, 0.06) 0px 1px 2px 0px, rgba(24, 25, 22, 0.1) 0px 20px 25px -5px, rgba(24, 25, 22, 0.1) 0px 8px 10px -6px, rgba(0, 0, 0, 0.12) 0px 2px 3px 0px"
+  ],
+  "animations": [],
+  "transitions": [
+    {
+      "element": "",
+      "transition": "all",
+      "transitionProperty": "all",
+      "transitionDuration": "0s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "Header-module--li--9de8d",
+      "transition": "color 0.25s",
+      "transitionProperty": "color",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "Button-module--button--3b10c Button-module--primaryOutlined--c12e0 Button-module--small--f04c2 Header-module--button--5a43c",
+      "transition": "background-color 0.25s, border 0.25s, opacity 0.25s, color 0.25s, box-shadow 0.25s",
+      "transitionProperty": "background-color, border, opacity, color, box-shadow",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "Button-module--button--3b10c Button-module--primary--379ca Button-module--small--f04c2 Header-module--signupButton--6c594",
+      "transition": "background-color 0.25s, border 0.25s, opacity 0.25s, color 0.25s",
+      "transitionProperty": "background-color, border, opacity, color",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "Header-module--mobileToggler--1dde0",
+      "transition": "0.5s ease-in-out",
+      "transitionProperty": "all",
+      "transitionDuration": "0.5s",
+      "transitionTimingFunction": "ease-in-out"
+    },
+    {
+      "element": "",
+      "transition": "0.25s ease-in-out",
+      "transitionProperty": "all",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "ease-in-out"
+    },
+    {
+      "element": "IdentifyMoreSection-module--card--f834a",
+      "transition": "opacity 0.7s, transform 0.7s",
+      "transitionProperty": "opacity, transform",
+      "transitionDuration": "0.7s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "DiagramSection-module--selectButton--e507e DiagramSection-module--showButton--56426",
+      "transition": "background-color 0.5s, opacity 0.5s",
+      "transitionProperty": "background-color, opacity",
+      "transitionDuration": "0.5s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "DiagramSection-module--accuracyDescription--22c1f",
+      "transition": "opacity 0.4s",
+      "transitionProperty": "opacity",
+      "transitionDuration": "0.4s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "DiagramSection-module--diagram--470f7",
+      "transition": "background-image 0.4s linear",
+      "transitionProperty": "background-image",
+      "transitionDuration": "0.4s",
+      "transitionTimingFunction": "linear"
+    },
+    {
+      "element": "IncludedSection-module--card--baccd",
+      "transition": "box-shadow 0.25s, border 0.25s",
+      "transitionProperty": "box-shadow, border",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "swiper-wrapper",
+      "transition": "transform",
+      "transitionProperty": "transform",
+      "transitionDuration": "0s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "SubscribeNewsletterForm-module--form--839c7",
+      "transition": "border 0.25s",
+      "transitionProperty": "border",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": {},
+      "transition": "fill 0.25s",
+      "transitionProperty": "fill",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "Footer-module--link--e0d8f",
+      "transition": "opacity 0.25s",
+      "transitionProperty": "opacity",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": "ClerkLikeChatBubble-module--inner--77686",
+      "transition": "background-color 0.1s",
+      "transitionProperty": "background-color",
+      "transitionDuration": "0.1s",
+      "transitionTimingFunction": "ease"
+    },
+    {
+      "element": {},
+      "transition": "fill 0.25s linear",
+      "transitionProperty": "fill",
+      "transitionDuration": "0.25s",
+      "transitionTimingFunction": "linear"
+    }
+  ],
+  "gradients": [],
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  }
+}

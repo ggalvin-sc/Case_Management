@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New Client - Case Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Select2 for searchable dropdowns -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="../css/select2-tailwind.css">
+    <script src="../js/nav.js"></script>
+    <script src="../js/searchable-select.js"></script>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <div id="app-nav"></div>
+        <script>renderNav('');</script>
+
         <!-- Header -->
         <header class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Case Management</title>
+    <title>Login - Case Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="js/api.js"></script>
@@ -91,19 +91,6 @@
                     Sign in
                 </button>
             </form>
-
-            <!-- Demo Accounts -->
-            <div class="mt-6 pt-6 border-t border-gray-200">
-                <p class="text-xs text-gray-500 text-center mb-3">Demo Accounts (Development Only)</p>
-                <div class="space-y-2">
-                    <button onclick="fillDemoCredentials('admin')" class="w-full text-left text-xs px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded">
-                        <strong>Admin:</strong> admin@example.com / password
-                    </button>
-                    <button onclick="fillDemoCredentials('attorney')" class="w-full text-left text-xs px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded">
-                        <strong>Attorney:</strong> attorney@example.com / password
-                    </button>
-                </div>
-            </div>
         </div>
 
         <p class="text-center text-xs text-gray-500">
@@ -112,10 +99,12 @@
     </div>
 
     <script>
-        // Check if already logged in
-        if (localStorage.getItem('token')) {
-            window.location.href = '/index.html';
-        }
+        // Check if already logged in - do this immediately to prevent flash
+        (function() {
+            if (localStorage.getItem('token')) {
+                window.location.href = '/index.html';
+            }
+        })();
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -133,14 +122,15 @@
             try {
                 const response = await api.post('/auth/login', { email, password });
 
-                // Store token and user data
-                localStorage.setItem('token', response.token);
+                // Tokens are now in HTTP-only cookies (set by server)
+                // Only store user info in localStorage
                 localStorage.setItem('user', JSON.stringify(response.user));
 
                 // Redirect to dashboard
                 window.location.href = '/index.html';
             } catch (error) {
                 // Show error message
+                console.log('Login error:', error);
                 document.getElementById('errorText').textContent = error.message || 'Invalid email or password';
                 errorMessage.classList.remove('hidden');
 
@@ -150,13 +140,17 @@
             }
         });
 
-        function fillDemoCredentials(role) {
-            if (role === 'admin') {
-                document.getElementById('email').value = 'admin@example.com';
-            } else if (role === 'attorney') {
-                document.getElementById('email').value = 'attorney@example.com';
+        // Only include demo credentials in development (localhost)
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            function fillDemoCredentials(role) {
+                if (role === 'admin') {
+                    document.getElementById('email').value = 'admin@example.com';
+                } else if (role === 'attorney') {
+                    document.getElementById('email').value = 'attorney@example.com';
+                }
+                // Use environment-specific password (still weak for dev convenience)
+                document.getElementById('password').value = 'password';
             }
-            document.getElementById('password').value = 'password';
         }
     </script>
 </body>

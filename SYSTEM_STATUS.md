@@ -27,6 +27,18 @@
    - API Token: `00d1c3f024...` (configured)
    - Status: Connected ✅
 
+4. **RunPod Serverless** - https://console.runpod.io/
+   - API Key: `rpa_M0OZLRZPX2FPQ63L9ZYAC9MCWX1QM2H91UPUWI421647hh` (configured)
+   - Integration: Ready ✅
+   - Pay-per-request serverless execution
+
+5. **RunPod Rust Service** - http://localhost:3001 (NEW)
+   - High-performance Rust microservice
+   - RESTful API for RunPod operations
+   - Async/await with Tokio runtime
+   - Type-safe with compile-time guarantees
+   - Status: Ready ✅
+
 ---
 
 ## Test Results
@@ -305,6 +317,21 @@ Case_Management_2025-10-6/
 ### Sync
 - POST /api/v1/sync/kimai/timesheets
 
+### RunPod Serverless (Node.js)
+- GET  /api/v1/runpod/health
+- POST /api/v1/runpod/execute
+- GET  /api/v1/runpod/status/:endpoint_id/:job_id
+- POST /api/v1/runpod/cancel/:endpoint_id/:job_id
+- POST /api/v1/runpod/execute-and-wait
+
+### RunPod Serverless (Rust Service - Port 3001)
+- GET  /health                          - Service health check
+- POST /execute                         - Execute endpoint (sync/async)
+- GET  /status/:endpoint_id/:job_id     - Get job status
+- POST /cancel/:endpoint_id/:job_id     - Cancel running job
+- POST /poll/:endpoint_id/:job_id       - Poll until complete
+- GET  /api-health                      - RunPod API connectivity
+
 ---
 
 ## Performance Metrics
@@ -354,8 +381,15 @@ Case_Management_2025-10-6/
 **Quick Start:**
 1. Start backend: `cd backend && node server.js`
 2. Start frontend: `cd frontend && python -m http.server 8000`
-3. Open: http://localhost:8000/login.html
-4. Login: admin@example.com / password
+3. (Optional) Start Rust service: `cd runpod-rust && cargo run --release`
+4. Open: http://localhost:8000/login.html
+5. Login: admin@example.com / password
+
+**RunPod Rust Service:**
+- Documentation: `runpod-rust/README.md`
+- Quick start: `cd runpod-rust && cargo run --release`
+- Test API: `curl http://localhost:3001/health`
+- Fetch endpoints: `RUNPOD_EMAIL=your@email.com RUNPOD_PASSWORD=password node scripts/fetch-runpod-endpoints.js`
 
 ---
 

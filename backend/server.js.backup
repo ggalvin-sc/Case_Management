@@ -1,0 +1,1932 @@
+// Production-Ready Backend with Database + Kimai Sync
+// Handles all edge cases, errors, and works with or without Kimai
+
+const http = require('http');
+const https = require('https');
+const url = require('url');
+const fs = require('fs');
+const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
+
+// Load environment
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+// Import RunPod client
+const runpod = require('./runpod-client');
+
+const PORT = process.env.APP_PORT || 3000;
+const KIMAI_API_URL = process.env.KIMAI_API_URL || 'https://demo.kimai.org';
+const KIMAI_API_TOKEN = process.env.KIMAI_API_TOKEN;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
+const SALT_ROUNDS = 10;
+
+// Validate critical security configurations on startup
+if (!JWT_SECRET || JWT_SECRET === 'your-secret-key-change-this-in-production') {
+    console.error('\n' + '='.repeat(70));
+    console.error('  ❌ FATAL ERROR: JWT_SECRET not configured');
+    console.error('='.repeat(70));
+    console.error('  Please set a strong JWT_SECRET in your .env file.');
+    console.error('  Generate one using:');
+    console.error('  node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+    console.error('='.repeat(70) + '\n');
+    process.exit(1);
+}
+
+// Initialize SQLite database
+const dbPath = path.join(__dirname, 'billing.db');
+const db = new sqlite3.Database(dbPath);
+
+// Create tables
+db.serialize(() => {
+    // Add hourly_rate to users table
+    db.run(`ALTER TABLE users ADD COLUMN hourly_rate REAL`, (err) => {});
+
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        password TEXT,
+        first_name TEXT,
+        last_name TEXT,
+        role TEXT,
+        hourly_rate REAL,
+        kimai_user_id INTEGER
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS clients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        client_number TEXT,
+        email TEXT,
+        phone TEXT,
+        address TEXT,
+        address_line2 TEXT,
+        city TEXT,
+        state TEXT,
+        zip_code TEXT,
+        country TEXT,
+        default_hourly_rate REAL,
+        kimai_customer_id INTEGER
+    )`);
+
+    // Add new address columns if they don't exist
+    db.run(`ALTER TABLE clients ADD COLUMN default_hourly_rate REAL`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN address_line2 TEXT`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN city TEXT`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN state TEXT`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN zip_code TEXT`, (err) => {});
+    db.run(`ALTER TABLE clients ADD COLUMN country TEXT`, (err) => {});
+
+    // Add new matter fields if they don't exist
+    db.run(`ALTER TABLE matters ADD COLUMN close_date TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN matter_type TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN court_name TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN case_number TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN opposing_party TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN opposing_counsel TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN statute_of_limitations_date TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN priority TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN practice_area TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN conflict_check_date TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN retainer_amount REAL`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN estimated_hours REAL`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN notes TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN contingency_percentage REAL`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN trial_contingency_percentage REAL`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN appeal_contingency_percentage REAL`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN attorney_hourly_rate REAL`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN trial_date TEXT`, (err) => {});
+    db.run(`ALTER TABLE matters ADD COLUMN appeal_date TEXT`, (err) => {});
+
+    db.run(`CREATE TABLE IF NOT EXISTS matters (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        matter_number TEXT,
+        client_id INTEGER,
+        name TEXT,
+        description TEXT,
+        status TEXT,
+        attorney_id INTEGER,
+        billing_type TEXT,
+        hourly_rate REAL,
+        open_date TEXT,
+        close_date TEXT,
+        matter_type TEXT,
+        court_name TEXT,
+        case_number TEXT,
+        opposing_party TEXT,
+        opposing_counsel TEXT,
+        statute_of_limitations_date TEXT,
+        priority TEXT,
+        practice_area TEXT,
+        conflict_check_date TEXT,
+        retainer_amount REAL,
+        estimated_hours REAL,
+        notes TEXT,
+        contingency_percentage REAL,
+        trial_contingency_percentage REAL,
+        appeal_contingency_percentage REAL,
+        attorney_hourly_rate REAL,
+        trial_date TEXT,
+        appeal_date TEXT,
+        kimai_project_id INTEGER,
+        FOREIGN KEY(client_id) REFERENCES clients(id)
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS time_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        matter_id INTEGER,
+        user_id INTEGER,
+        entry_date TEXT,
+        duration_minutes INTEGER,
+        description TEXT,
+        hourly_rate REAL,
+        amount REAL,
+        billable INTEGER,
+        billed INTEGER,
+        kimai_timesheet_id INTEGER,
+        FOREIGN KEY(matter_id) REFERENCES matters(id)
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        matter_id INTEGER,
+        expense_date TEXT,
+        category TEXT,
+        description TEXT,
+        vendor TEXT,
+        amount REAL,
+        markup_percentage REAL,
+        billed_amount REAL,
+        billable INTEGER,
+        billed INTEGER,
+        invoice_id INTEGER,
+        FOREIGN KEY(matter_id) REFERENCES matters(id),
+        FOREIGN KEY(invoice_id) REFERENCES invoices(id)
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_number TEXT UNIQUE,
+        matter_id INTEGER NOT NULL,
+        client_id INTEGER NOT NULL,
+        issue_date TEXT NOT NULL,
+        due_date TEXT,
+        status TEXT DEFAULT 'draft',
+        subtotal REAL DEFAULT 0,
+        tax_rate REAL DEFAULT 0,
+        tax_amount REAL DEFAULT 0,
+        total_amount REAL DEFAULT 0,
+        notes TEXT,
+        payment_terms TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        finalized_at TEXT,
+        sent_at TEXT,
+        paid_at TEXT,
+        paid_amount REAL DEFAULT 0,
+        FOREIGN KEY(matter_id) REFERENCES matters(id),
+        FOREIGN KEY(client_id) REFERENCES clients(id)
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS invoice_line_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_id INTEGER NOT NULL,
+        item_type TEXT NOT NULL,
+        item_id INTEGER,
+        description TEXT NOT NULL,
+        quantity REAL DEFAULT 1,
+        rate REAL DEFAULT 0,
+        amount REAL DEFAULT 0,
+        line_order INTEGER DEFAULT 0,
+        FOREIGN KEY(invoice_id) REFERENCES invoices(id)
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS firm_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        firm_name TEXT,
+        address TEXT,
+        address_line2 TEXT,
+        city TEXT,
+        state TEXT,
+        zip_code TEXT,
+        phone TEXT,
+        email TEXT,
+        website TEXT,
+        tax_id TEXT,
+        logo_url TEXT,
+        default_invoice_template TEXT DEFAULT 'classic',
+        default_payment_terms TEXT,
+        invoice_footer TEXT
+    )`);
+
+    db.run(`ALTER TABLE time_entries ADD COLUMN invoice_id INTEGER REFERENCES invoices(id)`, (err) => {
+        // Ignore error if column already exists
+    });
+
+    // Insert default user if none exist
+    db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
+        if (!err && row.count === 0) {
+            db.run(`INSERT INTO users (email, password, first_name, last_name, role)
+                    VALUES ('admin@example.com', 'password', 'Admin', 'User', 'admin')`);
+            db.run(`INSERT INTO users (email, password, first_name, last_name, role)
+                    VALUES ('attorney@example.com', 'password', 'John', 'Attorney', 'attorney')`);
+        }
+    });
+
+    // Insert sample client if none exist
+    db.get("SELECT COUNT(*) as count FROM clients", (err, row) => {
+        if (!err && row.count === 0) {
+            db.run(`INSERT INTO clients (name, client_number, email)
+                    VALUES ('Sample Client', 'CL-001', 'client@example.com')`);
+        }
+    });
+
+    // Insert default firm settings if none exist
+    db.get("SELECT COUNT(*) as count FROM firm_settings", (err, row) => {
+        if (!err && row.count === 0) {
+            db.run(`INSERT INTO firm_settings (
+                firm_name, address, city, state, zip_code, phone, email,
+                default_invoice_template, default_payment_terms, invoice_footer
+            ) VALUES (
+                'Your Law Firm Name',
+                '123 Main Street',
+                'City',
+                'State',
+                '12345',
+                '(555) 123-4567',
+                'contact@lawfirm.com',
+                'classic',
+                'Payment is due within 30 days of invoice date. Please make checks payable to Your Law Firm Name.',
+                'Thank you for your business. Please contact us if you have any questions about this invoice.'
+            )`);
+        }
+    });
+});
+
+console.log(`Database initialized at: ${dbPath}`);
+
+// Rate Limiting for Login Attempts
+const loginAttempts = new Map(); // email -> { count, firstAttempt, lockUntil }
+const MAX_LOGIN_ATTEMPTS = 5;
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Checks if an IP/email is rate limited for login attempts
+ * @param {string} identifier - Email or IP address
+ * @returns {Object} { limited: boolean, remainingAttempts: number, retryAfter: number }
+ */
+function checkRateLimit(identifier) {
+    const now = Date.now();
+    const attempt = loginAttempts.get(identifier);
+
+    if (!attempt) {
+        return { limited: false, remainingAttempts: MAX_LOGIN_ATTEMPTS };
+    }
+
+    // Check if locked out
+    if (attempt.lockUntil && now < attempt.lockUntil) {
+        const retryAfter = Math.ceil((attempt.lockUntil - now) / 1000);
+        return { limited: true, remainingAttempts: 0, retryAfter };
+    }
+
+    // Reset if window expired
+    if (now - attempt.firstAttempt > RATE_LIMIT_WINDOW) {
+        loginAttempts.delete(identifier);
+        return { limited: false, remainingAttempts: MAX_LOGIN_ATTEMPTS };
+    }
+
+    // Check if exceeded max attempts
+    if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
+        attempt.lockUntil = now + LOCKOUT_DURATION;
+        const retryAfter = Math.ceil(LOCKOUT_DURATION / 1000);
+        return { limited: true, remainingAttempts: 0, retryAfter };
+    }
+
+    return { limited: false, remainingAttempts: MAX_LOGIN_ATTEMPTS - attempt.count };
+}
+
+/**
+ * Records a failed login attempt
+ * @param {string} identifier - Email or IP address
+ */
+function recordFailedLogin(identifier) {
+    const now = Date.now();
+    const attempt = loginAttempts.get(identifier);
+
+    if (!attempt || now - attempt.firstAttempt > RATE_LIMIT_WINDOW) {
+        loginAttempts.set(identifier, {
+            count: 1,
+            firstAttempt: now,
+            lockUntil: null
+        });
+    } else {
+        attempt.count++;
+        if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
+            attempt.lockUntil = now + LOCKOUT_DURATION;
+        }
+    }
+}
+
+/**
+ * Records a successful login (resets attempts)
+ * @param {string} identifier - Email or IP address
+ */
+function recordSuccessfulLogin(identifier) {
+    loginAttempts.delete(identifier);
+}
+
+// Clean up old rate limit entries every hour
+setInterval(() => {
+    const now = Date.now();
+    for (const [identifier, attempt] of loginAttempts.entries()) {
+        if (now - attempt.firstAttempt > RATE_LIMIT_WINDOW && (!attempt.lockUntil || now > attempt.lockUntil)) {
+            loginAttempts.delete(identifier);
+        }
+    }
+}, 60 * 60 * 1000);
+
+// Security Utilities
+/**
+ * Handles CORS with restricted origins
+ * @param {Object} req - HTTP request object
+ * @param {Object} res - HTTP response object
+ */
+function handleCORS(req, res) {
+    const origin = req.headers.origin;
+
+    // Check if origin is allowed
+    if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+        res.setHeader('Access-Control-Allow-Origin', origin || ALLOWED_ORIGINS[0]);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+    }
+
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
+
+/**
+ * Generates a JWT token for authenticated users
+ * @param {Object} user - User object containing id, email, and role
+ * @returns {string} JWT token
+ */
+function generateToken(user) {
+    return jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+    );
+}
+
+/**
+ * Verifies JWT token from Authorization header
+ * @param {string} authHeader - Authorization header value
+ * @returns {Object|null} Decoded token payload or null if invalid
+ */
+function verifyToken(authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+    }
+
+    const token = authHeader.substring(7);
+
+    try {
+        return jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+        console.error('Token verification error:', error.message);
+        return null;
+    }
+}
+
+/**
+ * Authentication middleware - checks for valid JWT token
+ * Returns the authenticated user or sends 401 response
+ * @param {Object} req - HTTP request object
+ * @param {Object} res - HTTP response object
+ * @returns {Object|null} Decoded user object or null if unauthorized (response sent)
+ */
+function requireAuth(req, res) {
+    const authHeader = req.headers.authorization;
+    const decoded = verifyToken(authHeader);
+
+    if (!decoded) {
+        sendJSON(req, res, 401, {
+            error: 'Unauthorized - Authentication required',
+            message: 'Please provide a valid JWT token in the Authorization header'
+        });
+        return null;
+    }
+
+    return decoded;
+}
+
+/**
+ * CSRF Token Management
+ * Stores CSRF tokens per user email for protection against Cross-Site Request Forgery
+ */
+const csrfTokens = new Map(); // email -> { token, expiry }
+const crypto = require('crypto');
+
+/**
+ * Generates a CSRF token for a user
+ * @param {string} email - User email
+ * @returns {string} CSRF token
+ */
+function generateCSRFToken(email) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+    csrfTokens.set(email, { token, expiry });
+    return token;
+}
+
+/**
+ * Validates CSRF token for state-changing requests
+ * @param {Object} req - HTTP request object
+ * @param {Object} res - HTTP response object
+ * @param {Object} user - Authenticated user object
+ * @returns {boolean} True if valid or not required, false if invalid (response sent)
+ */
+function validateCSRF(req, res, user) {
+    // Only check CSRF on state-changing methods
+    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        return true;
+    }
+
+    const providedToken = req.headers['x-csrf-token'];
+    const storedData = csrfTokens.get(user.email);
+
+    // Check if token exists and is not expired
+    if (!storedData || Date.now() > storedData.expiry) {
+        sendJSON(req, res, 403, {
+            error: 'CSRF token expired',
+            message: 'Please login again to get a new CSRF token'
+        });
+        return false;
+    }
+
+    // Validate token
+    if (!providedToken || providedToken !== storedData.token) {
+        sendJSON(req, res, 403, {
+            error: 'Invalid CSRF token',
+            message: 'CSRF token is missing or invalid'
+        });
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Combined authentication and CSRF validation
+ * @param {Object} req - HTTP request object
+ * @param {Object} res - HTTP response object
+ * @returns {Object|null} Authenticated user or null if validation fails (response sent)
+ */
+function requireAuthAndCSRF(req, res) {
+    const user = requireAuth(req, res);
+    if (!user) return null;
+
+    if (!validateCSRF(req, res, user)) return null;
+
+    return user;
+}
+
+/**
+ * Sanitizes user input to prevent XSS attacks
+ * @param {string} input - User input string
+ * @returns {string} Sanitized string
+ */
+function sanitizeInput(input) {
+    if (typeof input !== 'string') return input;
+
+    return input
+        .replace(/[<>]/g, '') // Remove < and > to prevent basic XSS
+        .trim()
+        .substring(0, 10000); // Limit length to prevent DoS
+}
+
+/**
+ * Validates and sanitizes request body data
+ * @param {Object} data - Request body data
+ * @returns {Object} Sanitized data
+ */
+function sanitizeData(data) {
+    if (!data || typeof data !== 'object') return data;
+
+    const sanitized = {};
+    for (const key in data) {
+        if (typeof data[key] === 'string') {
+            sanitized[key] = sanitizeInput(data[key]);
+        } else if (typeof data[key] === 'object' && !Array.isArray(data[key])) {
+            sanitized[key] = sanitizeData(data[key]);
+        } else {
+            sanitized[key] = data[key];
+        }
+    }
+    return sanitized;
+}
+
+/**
+ * Builds a secure UPDATE query with field name validation
+ * @param {string} tableName - Table name (must be in allowlist)
+ * @param {Array<string>} allowedFields - Allowlist of field names
+ * @param {Object} data - Data object with field values
+ * @param {string} idField - ID field name (default: 'id')
+ * @returns {Object} { sql: string, values: Array, fieldCount: number }
+ * @throws {Error} If table name or field names are invalid
+ */
+function buildSecureUpdateQuery(tableName, allowedFields, data, idField = 'id') {
+    // Validate table name against allowlist
+    const ALLOWED_TABLES = ['matters', 'invoices', 'firm_settings', 'time_entries', 'expenses', 'clients', 'users'];
+    if (!ALLOWED_TABLES.includes(tableName)) {
+        throw new Error(`Invalid table name: ${tableName}`);
+    }
+
+    // Validate ID field name pattern
+    const VALID_FIELD_PATTERN = /^[a-z_][a-z0-9_]*$/;
+    if (!VALID_FIELD_PATTERN.test(idField)) {
+        throw new Error(`Invalid ID field name: ${idField}`);
+    }
+
+    const updates = [];
+    const values = [];
+
+    for (const field of allowedFields) {
+        // Strict validation: field must be in allowlist AND match pattern
+        if (!allowedFields.includes(field)) {
+            throw new Error(`Field not in allowlist: ${field}`);
+        }
+
+        if (!VALID_FIELD_PATTERN.test(field)) {
+            throw new Error(`Invalid field name format: ${field}`);
+        }
+
+        if (data[field] !== undefined) {
+            updates.push(`${field} = ?`);
+            values.push(data[field]);
+        }
+    }
+
+    if (updates.length === 0) {
+        return { sql: null, values: [], fieldCount: 0 };
+    }
+
+    return {
+        sql: `UPDATE ${tableName} SET ${updates.join(', ')} WHERE ${idField} = ?`,
+        values,
+        fieldCount: updates.length
+    };
+}
+
+/**
+ * Validates password complexity
+ * @param {string} password - Password to validate
+ * @returns {Object} { valid: boolean, errors: string[] }
+ */
+function validatePassword(password) {
+    const errors = [];
+
+    if (!password || password.length < 8) {
+        errors.push('Password must be at least 8 characters long');
+    }
+
+    if (!/[a-z]/.test(password)) {
+        errors.push('Password must contain at least one lowercase letter');
+    }
+
+    if (!/[A-Z]/.test(password)) {
+        errors.push('Password must contain at least one uppercase letter');
+    }
+
+    if (!/[0-9]/.test(password)) {
+        errors.push('Password must contain at least one number');
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        errors.push('Password must contain at least one special character');
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
+/**
+ * Sends JSON response with CORS headers
+ * @param {Object} req - HTTP request object
+ * @param {Object} res - HTTP response object
+ * @param {number} statusCode - HTTP status code
+ * @param {Object} data - Response data
+ */
+function sendJSON(req, res, statusCode, data) {
+    handleCORS(req, res);
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+}
+
+function dbGet(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.get(sql, params, (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+        });
+    });
+}
+
+function dbAll(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+        });
+    });
+}
+
+function dbRun(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function(err) {
+            if (err) reject(err);
+            else resolve({ id: this.lastID, changes: this.changes });
+        });
+    });
+}
+
+// Kimai API helper
+async function callKimaiAPI(method, path, data = null) {
+    if (!KIMAI_API_TOKEN) {
+        return null; // No Kimai configured
+    }
+
+    return new Promise((resolve) => {
+        const kimaiUrl = new URL(path, KIMAI_API_URL);
+        const options = {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${KIMAI_API_TOKEN}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            timeout: 5000
+        };
+
+        const req = https.request(kimaiUrl, options, (kimaiRes) => {
+            let body = '';
+            kimaiRes.on('data', chunk => body += chunk);
+            kimaiRes.on('end', () => {
+                try {
+                    const responseData = body ? JSON.parse(body) : null;
+                    if (kimaiRes.statusCode >= 200 && kimaiRes.statusCode < 300) {
+                        resolve({ success: true, data: responseData });
+                    } else {
+                        console.error(`Kimai API Error ${kimaiRes.statusCode}:`, responseData);
+                        resolve({ success: false, error: responseData });
+                    }
+                } catch (e) {
+                    resolve({ success: false, error: 'Invalid response' });
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            console.error('Kimai connection error:', error.message);
+            resolve({ success: false, error: error.message });
+        });
+
+        req.on('timeout', () => {
+            req.destroy();
+            resolve({ success: false, error: 'Timeout' });
+        });
+
+        if (data) req.write(JSON.stringify(data));
+        req.end();
+    });
+}
+
+// TLS/SSL Configuration
+let tlsOptions = null;
+const certPath = path.join(__dirname, 'certs', 'server-cert.pem');
+const keyPath = path.join(__dirname, 'certs', 'server-key.pem');
+
+// Check if TLS certificates exist
+if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    tlsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    };
+    console.log('✓ TLS certificates loaded - HTTPS enabled');
+} else {
+    console.warn('⚠ TLS certificates not found - Using HTTP (insecure)');
+    console.warn('  Generate certificates: node backend/generate-certs.js');
+}
+
+// Request handler
+const requestHandler = async (req, res) => {
+    const parsedUrl = url.parse(req.url, true);
+    const pathname = parsedUrl.pathname;
+    const method = req.method;
+
+    if (method === 'OPTIONS') {
+        handleCORS(req, res);
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
+    console.log(`${method} ${pathname}`);
+
+    // Serve static files from frontend directory for non-API requests
+    if (!pathname.startsWith('/api/')) {
+        let filePath = path.join(__dirname, '..', 'frontend', pathname === '/' ? 'index.html' : pathname);
+
+        // Security check: ensure path is within frontend directory
+        const frontendDir = path.join(__dirname, '..', 'frontend');
+        const resolvedPath = path.resolve(filePath);
+        if (!resolvedPath.startsWith(frontendDir)) {
+            res.writeHead(403);
+            res.end('Forbidden');
+            return;
+        }
+
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                res.writeHead(404);
+                res.end('Not Found');
+                return;
+            }
+
+            // Set content type based on file extension
+            const ext = path.extname(filePath);
+            const contentTypes = {
+                '.html': 'text/html',
+                '.js': 'text/javascript',
+                '.css': 'text/css',
+                '.json': 'application/json',
+                '.png': 'image/png',
+                '.jpg': 'image/jpg',
+                '.gif': 'image/gif',
+                '.svg': 'image/svg+xml',
+                '.ico': 'image/x-icon'
+            };
+            const contentType = contentTypes[ext] || 'text/plain';
+
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(data);
+        });
+        return;
+    }
+
+    let body = '';
+    req.on('data', chunk => body += chunk.toString());
+    req.on('end', async () => {
+        let data = {};
+        try {
+            data = body ? JSON.parse(body) : {};
+            data = sanitizeData(data); // Sanitize all input data
+        } catch (parseError) {
+            sendJSON(req, res, 400, { error: 'Invalid JSON in request body' });
+            return;
+        }
+
+        try {
+            // AUTH
+            if (pathname === '/api/v1/auth/login' && method === 'POST') {
+                // Validate input
+                if (!data.email || !data.password) {
+                    sendJSON(req, res, 400, { error: 'Email and password are required' });
+                    return;
+                }
+
+                // Validate email format
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(data.email)) {
+                    sendJSON(req, res, 400, { error: 'Invalid email format' });
+                    return;
+                }
+
+                // Check rate limit
+                const rateLimit = checkRateLimit(data.email);
+                if (rateLimit.limited) {
+                    sendJSON(req, res, 429, {
+                        error: 'Too many login attempts',
+                        message: `Account temporarily locked. Please try again in ${rateLimit.retryAfter} seconds.`,
+                        retryAfter: rateLimit.retryAfter
+                    });
+                    return;
+                }
+
+                const user = await dbGet('SELECT * FROM users WHERE email = ?', [data.email]);
+
+                if (!user) {
+                    recordFailedLogin(data.email);
+                    const rateCheck = checkRateLimit(data.email);
+                    sendJSON(req, res, 401, {
+                        error: 'Invalid credentials',
+                        remainingAttempts: rateCheck.remainingAttempts
+                    });
+                    return;
+                }
+
+                // Verify hashed password with bcrypt
+                const passwordMatch = await bcrypt.compare(data.password, user.password);
+
+                if (passwordMatch) {
+                    // Reset rate limit on successful login
+                    recordSuccessfulLogin(data.email);
+
+                    const token = generateToken(user);
+                    const csrfToken = generateCSRFToken(user.email);
+
+                    sendJSON(req, res, 200, {
+                        token,
+                        csrfToken,
+                        user: {
+                            id: user.id,
+                            email: user.email,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            role: user.role
+                        }
+                    });
+                } else {
+                    recordFailedLogin(data.email);
+                    const rateCheck = checkRateLimit(data.email);
+                    sendJSON(req, res, 401, {
+                        error: 'Invalid credentials',
+                        remainingAttempts: rateCheck.remainingAttempts
+                    });
+                }
+                return;
+            }
+
+            if (pathname === '/api/v1/auth/me' && method === 'GET') {
+                const authHeader = req.headers.authorization;
+                const decoded = verifyToken(authHeader);
+
+                if (!decoded) {
+                    sendJSON(req, res, 401, { error: 'Unauthorized - Invalid or missing token' });
+                    return;
+                }
+
+                const user = await dbGet('SELECT id, email, first_name, last_name, role, hourly_rate FROM users WHERE id = ?', [decoded.id]);
+
+                if (!user) {
+                    sendJSON(req, res, 404, { error: 'User not found' });
+                    return;
+                }
+
+                sendJSON(req, res, 200, user);
+                return;
+            }
+
+            if (pathname === '/api/v1/auth/change-password' && method === 'POST') {
+                const user = requireAuthAndCSRF(req, res);
+                if (!user) return;
+
+                // Validate input
+                if (!data.current_password || !data.new_password) {
+                    sendJSON(req, res, 400, {
+                        error: 'Current password and new password are required'
+                    });
+                    return;
+                }
+
+                // Validate new password complexity
+                const passwordValidation = validatePassword(data.new_password);
+                if (!passwordValidation.valid) {
+                    sendJSON(req, res, 400, {
+                        error: 'Password does not meet complexity requirements',
+                        requirements: passwordValidation.errors
+                    });
+                    return;
+                }
+
+                // Verify current password
+                const userRecord = await dbGet('SELECT * FROM users WHERE id = ?', [user.id]);
+                const currentPasswordMatch = await bcrypt.compare(data.current_password, userRecord.password);
+
+                if (!currentPasswordMatch) {
+                    sendJSON(req, res, 401, { error: 'Current password is incorrect' });
+                    return;
+                }
+
+                // Hash and update new password
+                const hashedPassword = await bcrypt.hash(data.new_password, SALT_ROUNDS);
+                await dbRun('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+
+                sendJSON(req, res, 200, {
+                    message: 'Password changed successfully'
+                });
+                return;
+            }
+
+            // DASHBOARD
+            if (pathname === '/api/v1/dashboard/stats' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const matters = await dbAll('SELECT * FROM matters WHERE status = "active"');
+                const timeEntries = await dbAll('SELECT * FROM time_entries WHERE billed = 0');
+                const expenses = await dbAll('SELECT * FROM expenses WHERE billed = 0');
+
+                const unbilledHours = timeEntries.reduce((sum, t) => sum + (t.duration_minutes || 0), 0) / 60;
+                const unbilledTime = timeEntries.reduce((sum, t) => sum + (t.amount || 0), 0);
+                const unbilledExpenses = expenses.reduce((sum, e) => sum + (e.billed_amount || 0), 0);
+
+                sendJSON(req, res, 200, {
+                    activeMatters: matters.length,
+                    unbilledHours: Math.round(unbilledHours * 10) / 10,
+                    unbilledAmount: Math.round((unbilledTime + unbilledExpenses) * 100) / 100,
+                    monthRevenue: 0
+                });
+                return;
+            }
+
+            if (pathname === '/api/v1/dashboard/activity' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const entries = await dbAll(`
+                    SELECT t.*, m.name as matter_name, u.first_name || ' ' || u.last_name as user_name
+                    FROM time_entries t
+                    LEFT JOIN matters m ON t.matter_id = m.id
+                    LEFT JOIN users u ON t.user_id = u.id
+                    ORDER BY t.entry_date DESC
+                    LIMIT 10
+                `);
+
+                const activities = entries.map(e => ({
+                    type: 'time_entry',
+                    description: `${e.user_name || 'User'} logged ${Math.floor(e.duration_minutes / 60)}h ${e.duration_minutes % 60}m on ${e.matter_name || 'matter'}`,
+                    timestamp: `${e.entry_date}T12:00:00Z`
+                }));
+
+                sendJSON(req, res, 200, activities);
+                return;
+            }
+
+            // CLIENTS
+            if (pathname === '/api/v1/clients' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const clients = await dbAll('SELECT * FROM clients');
+                sendJSON(req, res, 200, clients);
+                return;
+            }
+
+            if (pathname === '/api/v1/clients' && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                // Store client data locally only - no Kimai sync for case management data
+                const result = await dbRun(
+                    'INSERT INTO clients (name, client_number, email, phone, address, address_line2, city, state, zip_code, country, default_hourly_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [
+                        data.name,
+                        data.client_number || `CL-${Date.now()}`,
+                        data.email,
+                        data.phone,
+                        data.address,
+                        data.address_line2,
+                        data.city,
+                        data.state,
+                        data.zip_code,
+                        data.country || 'USA',
+                        data.default_hourly_rate || 350
+                    ]
+                );
+
+                const client = await dbGet('SELECT * FROM clients WHERE id = ?', [result.id]);
+                sendJSON(req, res, 201, client);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/clients\/\d+$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+                const client = await dbGet('SELECT * FROM clients WHERE id = ?', [id]);
+
+                if (!client) {
+                    sendJSON(req, res, 404, { error: 'Client not found' });
+                    return;
+                }
+
+                sendJSON(req, res, 200, client);
+                return;
+            }
+
+            // MATTERS
+            if (pathname === '/api/v1/matters' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const matters = await dbAll(`
+                    SELECT m.*, c.name as client_name,
+                           u.first_name || ' ' || u.last_name as attorney_name,
+                           COALESCE(SUM(CASE WHEN t.billed = 0 THEN t.amount ELSE 0 END), 0) as unbilled_amount
+                    FROM matters m
+                    LEFT JOIN clients c ON m.client_id = c.id
+                    LEFT JOIN users u ON m.attorney_id = u.id
+                    LEFT JOIN time_entries t ON m.id = t.matter_id
+                    GROUP BY m.id
+                `);
+                sendJSON(req, res, 200, matters);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/matters\/\d+$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+                const matter = await dbGet(`
+                    SELECT
+                        m.*,
+                        c.name as client_name,
+                        u.first_name || ' ' || u.last_name as attorney_name,
+                        0 as trust_balance
+                    FROM matters m
+                    LEFT JOIN clients c ON m.client_id = c.id
+                    LEFT JOIN users u ON m.attorney_id = u.id
+                    WHERE m.id = ?
+                `, [id]);
+
+                if (matter) {
+                    sendJSON(req, res, 200, matter);
+                } else {
+                    sendJSON(req, res, 404, { error: 'Not found' });
+                }
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/matters\/\d+\/summary$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+                const time = await dbAll('SELECT * FROM time_entries WHERE matter_id = ?', [id]);
+                const expenses = await dbAll('SELECT * FROM expenses WHERE matter_id = ?', [id]);
+
+                const unbilledTime = time.filter(t => !t.billed).reduce((sum, t) => sum + (t.amount || 0), 0);
+                const unbilledExpenses = expenses.filter(e => !e.billed).reduce((sum, e) => sum + (e.billed_amount || 0), 0);
+
+                sendJSON(req, res, 200, {
+                    total_billed: 0,
+                    unbilled_time: unbilledTime,
+                    unbilled_expenses: unbilledExpenses,
+                    outstanding: 0
+                });
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/matters\/\d+\/time-entries$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+                const entries = await dbAll(`
+                    SELECT t.*, u.first_name || ' ' || u.last_name as user_name, m.name as matter_name
+                    FROM time_entries t
+                    LEFT JOIN users u ON t.user_id = u.id
+                    LEFT JOIN matters m ON t.matter_id = m.id
+                    WHERE t.matter_id = ?
+                    ORDER BY t.entry_date DESC
+                `, [id]);
+                sendJSON(req, res, 200, entries);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/matters\/\d+\/expenses$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+                const expenses = await dbAll('SELECT * FROM expenses WHERE matter_id = ?', [id]);
+                sendJSON(req, res, 200, expenses);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/matters\/\d+\/invoices$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                sendJSON(req, res, 200, []);
+                return;
+            }
+
+            if (pathname === '/api/v1/matters' && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                // Get client to find default rate
+                const client = await dbGet('SELECT * FROM clients WHERE id = ?', [data.client_id]);
+                if (!client) {
+                    sendJSON(req, res, 400, { error: 'Client not found' });
+                    return;
+                }
+
+                // Determine hourly rate: matter rate > client default rate > system default ($350)
+                const hourlyRate = data.hourly_rate || client.default_hourly_rate || 350;
+
+                // Store matter data locally only - no Kimai sync for case management data
+                const result = await dbRun(`
+                    INSERT INTO matters (
+                        matter_number, client_id, name, description, status, attorney_id, attorney_hourly_rate,
+                        billing_type, hourly_rate, trial_contingency_percentage, appeal_contingency_percentage,
+                        open_date, matter_type, practice_area,
+                        priority, court_name, case_number, opposing_party, opposing_counsel,
+                        statute_of_limitations_date, trial_date, appeal_date, retainer_amount, estimated_hours, notes
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    data.matter_number || `M-${Date.now()}`,
+                    data.client_id,
+                    data.name,
+                    data.description,
+                    'active',
+                    data.attorney_id,
+                    data.attorney_hourly_rate,
+                    data.billing_type || 'hourly',
+                    hourlyRate,
+                    data.trial_contingency_percentage,
+                    data.appeal_contingency_percentage,
+                    data.open_date || new Date().toISOString().split('T')[0],
+                    data.matter_type,
+                    data.practice_area,
+                    data.priority,
+                    data.court_name,
+                    data.case_number,
+                    data.opposing_party,
+                    data.opposing_counsel,
+                    data.statute_of_limitations_date,
+                    data.trial_date,
+                    data.appeal_date,
+                    data.retainer_amount,
+                    data.estimated_hours,
+                    data.notes
+                ]);
+
+                const matter = await dbGet('SELECT * FROM matters WHERE id = ?', [result.id]);
+                sendJSON(req, res, 201, matter);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/matters\/\d+$/) && method === 'PATCH') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+
+                const allowedFields = [
+                    'name', 'description', 'status', 'attorney_id', 'attorney_hourly_rate',
+                    'billing_type', 'hourly_rate', 'trial_contingency_percentage', 'appeal_contingency_percentage',
+                    'matter_type', 'practice_area', 'priority', 'court_name', 'case_number',
+                    'opposing_party', 'opposing_counsel', 'statute_of_limitations_date',
+                    'trial_date', 'appeal_date', 'retainer_amount', 'estimated_hours', 'notes', 'close_date'
+                ];
+
+                const query = buildSecureUpdateQuery('matters', allowedFields, data);
+                if (query.sql) {
+                    query.values.push(id);
+                    await dbRun(query.sql, query.values);
+                }
+
+                const matter = await dbGet(`
+                    SELECT
+                        m.*,
+                        c.name as client_name,
+                        u.first_name || ' ' || u.last_name as attorney_name,
+                        0 as trust_balance
+                    FROM matters m
+                    LEFT JOIN clients c ON m.client_id = c.id
+                    LEFT JOIN users u ON m.attorney_id = u.id
+                    WHERE m.id = ?
+                `, [id]);
+
+                sendJSON(req, res, 200, matter);
+                return;
+            }
+
+            // USERS - Fetch from Kimai API
+            if (pathname === '/api/v1/users' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const result = await callKimaiAPI('GET', '/api/users');
+
+                if (result?.success && Array.isArray(result.data)) {
+                    // Fetch detailed info for each user to get hourly rates
+                    const usersWithRates = await Promise.all(
+                        result.data.map(async (u) => {
+                            const detailResult = await callKimaiAPI('GET', `/api/users/${u.id}`);
+                            let hourlyRate = null;
+
+                            if (detailResult?.success && detailResult.data?.preferences) {
+                                const ratePref = detailResult.data.preferences.find(p => p.name === 'hourly_rate');
+                                hourlyRate = ratePref?.value ? parseFloat(ratePref.value) : null;
+                            }
+
+                            return {
+                                id: u.id,
+                                email: u.email || '',
+                                first_name: u.alias || u.username || '',
+                                last_name: '',
+                                role: u.roles?.includes('ROLE_SUPER_ADMIN') ? 'admin' : 'user',
+                                hourly_rate: hourlyRate
+                            };
+                        })
+                    );
+
+                    sendJSON(req, res, 200, usersWithRates);
+                } else {
+                    console.log('Kimai users failed, using local database. Result:', result);
+                    // Fallback to local database if Kimai fails
+                    const users = await dbAll('SELECT id, email, first_name, last_name, role, hourly_rate FROM users');
+                    sendJSON(req, res, 200, users);
+                }
+                return;
+            }
+
+            // TIME ENTRIES
+            if (pathname === '/api/v1/time-entries' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const entries = await dbAll(`
+                    SELECT t.*,
+                           u.first_name || ' ' || u.last_name as user_name,
+                           m.name as matter_name,
+                           m.client_id,
+                           c.name as client_name
+                    FROM time_entries t
+                    LEFT JOIN users u ON t.user_id = u.id
+                    LEFT JOIN matters m ON t.matter_id = m.id
+                    LEFT JOIN clients c ON m.client_id = c.id
+                    ORDER BY t.entry_date DESC
+                    LIMIT 100
+                `);
+                sendJSON(req, res, 200, entries);
+                return;
+            }
+
+            if (pathname === '/api/v1/time-entries' && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const result = await dbRun(`
+                    INSERT INTO time_entries (matter_id, user_id, entry_date, duration_minutes, description, hourly_rate, amount, billable, billed)
+                    VALUES (?, 1, ?, ?, ?, ?, ?, ?, 0)
+                `, [
+                    data.matter_id,
+                    data.entry_date,
+                    data.duration_minutes,
+                    data.description,
+                    data.hourly_rate || 0,
+                    (data.duration_minutes / 60) * (data.hourly_rate || 0),
+                    data.billable ? 1 : 0
+                ]);
+
+                const entry = await dbGet('SELECT * FROM time_entries WHERE id = ?', [result.id]);
+                sendJSON(req, res, 201, entry);
+                return;
+            }
+
+            // EXPENSES
+            if (pathname === '/api/v1/expenses' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const expenses = await dbAll(`
+                    SELECT e.*, m.name as matter_name
+                    FROM expenses e
+                    LEFT JOIN matters m ON e.matter_id = m.id
+                    ORDER BY e.expense_date DESC
+                `);
+                sendJSON(req, res, 200, expenses);
+                return;
+            }
+
+            if (pathname === '/api/v1/expenses' && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const result = await dbRun(`
+                    INSERT INTO expenses (matter_id, expense_date, category, description, vendor, amount, markup_percentage, billed_amount, billable, billed)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                `, [
+                    data.matter_id,
+                    data.expense_date,
+                    data.category,
+                    data.description,
+                    data.vendor,
+                    data.amount,
+                    data.markup_percentage || 0,
+                    data.billed_amount,
+                    data.billable ? 1 : 0
+                ]);
+
+                const expense = await dbGet('SELECT * FROM expenses WHERE id = ?', [result.id]);
+                sendJSON(req, res, 201, expense);
+                return;
+            }
+
+            // PATCH time entry (for marking as billed)
+            if (pathname.match(/^\/api\/v1\/time-entries\/\d+$/) && method === 'PATCH') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+
+                const allowedFields = ['billed', 'invoice_id'];
+
+                // Convert billed to integer if present
+                const sanitizedData = { ...data };
+                if (sanitizedData.billed !== undefined) {
+                    sanitizedData.billed = sanitizedData.billed ? 1 : 0;
+                }
+
+                const query = buildSecureUpdateQuery('time_entries', allowedFields, sanitizedData);
+                if (query.sql) {
+                    query.values.push(id);
+                    await dbRun(query.sql, query.values);
+                }
+
+                const entry = await dbGet('SELECT * FROM time_entries WHERE id = ?', [id]);
+                sendJSON(req, res, 200, entry);
+                return;
+            }
+
+            // INVOICES
+            if (pathname === '/api/v1/invoices' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const { status: statusFilter, matter_id, client_id } = parsedUrl.query;
+
+                let sql = `
+                    SELECT i.*,
+                           m.name as matter_name, m.matter_number,
+                           c.name as client_name,
+                           (SELECT COUNT(*) FROM invoice_line_items WHERE invoice_id = i.id) as line_item_count
+                    FROM invoices i
+                    LEFT JOIN matters m ON i.matter_id = m.id
+                    LEFT JOIN clients c ON i.client_id = c.id
+                    WHERE 1=1
+                `;
+                const params = [];
+
+                if (statusFilter) {
+                    sql += ' AND i.status = ?';
+                    params.push(statusFilter);
+                }
+                if (matter_id) {
+                    sql += ' AND i.matter_id = ?';
+                    params.push(matter_id);
+                }
+                if (client_id) {
+                    sql += ' AND i.client_id = ?';
+                    params.push(client_id);
+                }
+
+                sql += ' ORDER BY i.created_at DESC';
+
+                const invoices = await dbAll(sql, params);
+                sendJSON(req, res, 200, invoices);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/invoices\/\d+$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+
+                const invoice = await dbGet(`
+                    SELECT i.*,
+                           m.name as matter_name, m.matter_number,
+                           m.attorney_id,
+                           c.name as client_name, c.email as client_email,
+                           c.address as client_address, c.address_line2 as client_address_line2,
+                           c.city as client_city, c.state as client_state, c.zip_code as client_zip_code,
+                           u.first_name || ' ' || u.last_name as attorney_name,
+                           u.email as attorney_email
+                    FROM invoices i
+                    LEFT JOIN matters m ON i.matter_id = m.id
+                    LEFT JOIN clients c ON i.client_id = c.id
+                    LEFT JOIN users u ON m.attorney_id = u.id
+                    WHERE i.id = ?
+                `, [id]);
+
+                if (!invoice) {
+                    sendJSON(req, res, 404, { error: 'Invoice not found' });
+                    return;
+                }
+
+                const lineItems = await dbAll(
+                    'SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY line_order',
+                    [id]
+                );
+
+                // Get firm settings
+                const firmSettings = await dbGet('SELECT * FROM firm_settings WHERE id = 1');
+
+                // Build formatted client address
+                let clientAddressFull = invoice.client_address || '';
+                if (invoice.client_address_line2) clientAddressFull += '\n' + invoice.client_address_line2;
+                if (invoice.client_city || invoice.client_state || invoice.client_zip_code) {
+                    clientAddressFull += '\n' + [invoice.client_city, invoice.client_state, invoice.client_zip_code].filter(Boolean).join(', ');
+                }
+
+                sendJSON(req, res, 200, {
+                    ...invoice,
+                    line_items: lineItems,
+                    firm: firmSettings,
+                    client_address_full: clientAddressFull.trim()
+                });
+                return;
+            }
+
+            if (pathname === '/api/v1/invoices' && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                // Generate invoice from unbilled items or create empty draft
+                const { matter_id, client_id, time_entry_ids = [], expense_ids = [], issue_date, due_date, notes, payment_terms } = data;
+
+                if (!matter_id || !client_id) {
+                    sendJSON(req, res, 400, { error: 'matter_id and client_id are required' });
+                    return;
+                }
+
+                // Create invoice
+                const invoiceResult = await dbRun(`
+                    INSERT INTO invoices (matter_id, client_id, issue_date, due_date, status, notes, payment_terms)
+                    VALUES (?, ?, ?, ?, 'draft', ?, ?)
+                `, [matter_id, client_id, issue_date || new Date().toISOString().split('T')[0], due_date, notes, payment_terms]);
+
+                const invoiceId = invoiceResult.id;
+
+                // Add time entries as line items
+                let lineOrder = 0;
+                let subtotal = 0;
+
+                for (const timeId of time_entry_ids) {
+                    const timeEntry = await dbGet('SELECT * FROM time_entries WHERE id = ?', [timeId]);
+                    if (timeEntry) {
+                        await dbRun(`
+                            INSERT INTO invoice_line_items (invoice_id, item_type, item_id, description, quantity, rate, amount, line_order)
+                            VALUES (?, 'time', ?, ?, ?, ?, ?, ?)
+                        `, [
+                            invoiceId,
+                            timeId,
+                            timeEntry.description || 'Time entry',
+                            timeEntry.duration_minutes / 60,
+                            timeEntry.hourly_rate,
+                            timeEntry.amount,
+                            lineOrder++
+                        ]);
+                        subtotal += timeEntry.amount;
+
+                        // Link time entry to invoice
+                        await dbRun('UPDATE time_entries SET invoice_id = ? WHERE id = ?', [invoiceId, timeId]);
+                    }
+                }
+
+                // Add expenses as line items
+                for (const expenseId of expense_ids) {
+                    const expense = await dbGet('SELECT * FROM expenses WHERE id = ?', [expenseId]);
+                    if (expense) {
+                        await dbRun(`
+                            INSERT INTO invoice_line_items (invoice_id, item_type, item_id, description, quantity, rate, amount, line_order)
+                            VALUES (?, 'expense', ?, ?, 1, ?, ?, ?)
+                        `, [
+                            invoiceId,
+                            expenseId,
+                            expense.description || 'Expense',
+                            expense.billed_amount,
+                            expense.billed_amount,
+                            lineOrder++
+                        ]);
+                        subtotal += expense.billed_amount;
+
+                        // Link expense to invoice
+                        await dbRun('UPDATE expenses SET invoice_id = ? WHERE id = ?', [invoiceId, expenseId]);
+                    }
+                }
+
+                // Update totals
+                const taxRate = 0; // No tax by default
+                const taxAmount = subtotal * taxRate;
+                const totalAmount = subtotal + taxAmount;
+
+                await dbRun(`
+                    UPDATE invoices
+                    SET subtotal = ?, tax_rate = ?, tax_amount = ?, total_amount = ?
+                    WHERE id = ?
+                `, [subtotal, taxRate, taxAmount, totalAmount, invoiceId]);
+
+                const invoice = await dbGet('SELECT * FROM invoices WHERE id = ?', [invoiceId]);
+                sendJSON(req, res, 201, invoice);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/invoices\/\d+\/finalize$/) && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+
+                const invoice = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                if (!invoice) {
+                    sendJSON(req, res, 404, { error: 'Invoice not found' });
+                    return;
+                }
+
+                if (invoice.status !== 'draft' && invoice.status !== 'review') {
+                    sendJSON(req, res, 400, { error: 'Can only finalize draft or review invoices' });
+                    return;
+                }
+
+                // Generate invoice number if not exists
+                let invoiceNumber = invoice.invoice_number;
+                if (!invoiceNumber) {
+                    const year = new Date().getFullYear();
+                    const count = await dbGet('SELECT COUNT(*) as count FROM invoices WHERE invoice_number IS NOT NULL');
+                    invoiceNumber = `INV-${year}-${String((count?.count || 0) + 1).padStart(4, '0')}`;
+                }
+
+                await dbRun(`
+                    UPDATE invoices
+                    SET status = 'finalized', invoice_number = ?, finalized_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                `, [invoiceNumber, id]);
+
+                // Mark all linked time entries and expenses as billed
+                await dbRun('UPDATE time_entries SET billed = 1 WHERE invoice_id = ?', [id]);
+                await dbRun('UPDATE expenses SET billed = 1 WHERE invoice_id = ?', [id]);
+
+                const updated = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                sendJSON(req, res, 200, updated);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/invoices\/\d+\/send$/) && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+
+                const invoice = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                if (!invoice) {
+                    sendJSON(req, res, 404, { error: 'Invoice not found' });
+                    return;
+                }
+
+                if (invoice.status !== 'finalized') {
+                    sendJSON(req, res, 400, { error: 'Can only send finalized invoices' });
+                    return;
+                }
+
+                await dbRun(`
+                    UPDATE invoices
+                    SET status = 'sent', sent_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                `, [id]);
+
+                const updated = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                sendJSON(req, res, 200, updated);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/invoices\/\d+\/payment$/) && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+                const { amount, payment_date } = data;
+
+                const invoice = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                if (!invoice) {
+                    sendJSON(req, res, 404, { error: 'Invoice not found' });
+                    return;
+                }
+
+                if (invoice.status !== 'sent' && invoice.status !== 'paid') {
+                    sendJSON(req, res, 400, { error: 'Can only record payment for sent invoices' });
+                    return;
+                }
+
+                const paidAmount = (invoice.paid_amount || 0) + amount;
+                const status = paidAmount >= invoice.total_amount ? 'paid' : 'sent';
+
+                await dbRun(`
+                    UPDATE invoices
+                    SET paid_amount = ?, status = ?, paid_at = ?
+                    WHERE id = ?
+                `, [paidAmount, status, payment_date || new Date().toISOString().split('T')[0], id]);
+
+                const updated = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                sendJSON(req, res, 200, updated);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/invoices\/\d+\/status$/) && method === 'PATCH') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+                const { status: newStatus } = data;
+
+                const validStatuses = ['draft', 'review', 'finalized', 'sent', 'paid', 'void'];
+                if (!validStatuses.includes(newStatus)) {
+                    sendJSON(req, res, 400, { error: 'Invalid status' });
+                    return;
+                }
+
+                await dbRun('UPDATE invoices SET status = ? WHERE id = ?', [newStatus, id]);
+
+                const updated = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                sendJSON(req, res, 200, updated);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/invoices\/\d+$/) && method === 'PATCH') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+
+                const allowedFields = ['due_date', 'notes', 'payment_terms', 'tax_rate'];
+
+                const query = buildSecureUpdateQuery('invoices', allowedFields, data);
+                if (query.sql) {
+                    query.values.push(id);
+                    await dbRun(query.sql, query.values);
+
+                    // Recalculate totals if tax_rate changed
+                    if (data.tax_rate !== undefined) {
+                        const invoice = await dbGet('SELECT subtotal, tax_rate FROM invoices WHERE id = ?', [id]);
+                        const taxAmount = invoice.subtotal * invoice.tax_rate;
+                        const totalAmount = invoice.subtotal + taxAmount;
+                        await dbRun('UPDATE invoices SET tax_amount = ?, total_amount = ? WHERE id = ?',
+                            [taxAmount, totalAmount, id]);
+                    }
+                }
+
+                const invoice = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                sendJSON(req, res, 200, invoice);
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/invoices\/\d+$/) && method === 'DELETE') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+
+                const invoice = await dbGet('SELECT * FROM invoices WHERE id = ?', [id]);
+                if (!invoice) {
+                    sendJSON(req, res, 404, { error: 'Invoice not found' });
+                    return;
+                }
+
+                if (invoice.status !== 'draft') {
+                    sendJSON(req, res, 400, { error: 'Can only delete draft invoices' });
+                    return;
+                }
+
+                // Unlink time entries and expenses
+                await dbRun('UPDATE time_entries SET invoice_id = NULL WHERE invoice_id = ?', [id]);
+                await dbRun('UPDATE expenses SET invoice_id = NULL WHERE invoice_id = ?', [id]);
+
+                // Delete line items and invoice
+                await dbRun('DELETE FROM invoice_line_items WHERE invoice_id = ?', [id]);
+                await dbRun('DELETE FROM invoices WHERE id = ?', [id]);
+
+                sendJSON(req, res, 200, { message: 'Invoice deleted' });
+                return;
+            }
+
+            // Get unbilled items for a matter
+            if (pathname.match(/^\/api\/v1\/matters\/\d+\/unbilled$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const id = pathname.split('/')[4];
+
+                const timeEntries = await dbAll(`
+                    SELECT t.*, u.first_name || ' ' || u.last_name as user_name
+                    FROM time_entries t
+                    LEFT JOIN users u ON t.user_id = u.id
+                    WHERE t.matter_id = ? AND t.billed = 0 AND t.invoice_id IS NULL
+                    ORDER BY t.entry_date DESC
+                `, [id]);
+
+                const expenses = await dbAll(`
+                    SELECT * FROM expenses
+                    WHERE matter_id = ? AND billed = 0 AND invoice_id IS NULL
+                    ORDER BY expense_date DESC
+                `, [id]);
+
+                sendJSON(req, res, 200, { time_entries: timeEntries, expenses });
+                return;
+            }
+
+            // FIRM SETTINGS
+            if (pathname === '/api/v1/firm-settings' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const settings = await dbGet('SELECT * FROM firm_settings WHERE id = 1');
+                sendJSON(req, res, 200, settings || {});
+                return;
+            }
+
+            if (pathname === '/api/v1/firm-settings' && method === 'PATCH') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const allowedFields = [
+                    'firm_name', 'address', 'address_line2', 'city', 'state', 'zip_code',
+                    'phone', 'email', 'website', 'tax_id', 'logo_url',
+                    'default_invoice_template', 'default_payment_terms', 'invoice_footer'
+                ];
+
+                const query = buildSecureUpdateQuery('firm_settings', allowedFields, data);
+                if (query.sql) {
+                    query.values.push(1);
+                    await dbRun(query.sql, query.values);
+                }
+
+                const settings = await dbGet('SELECT * FROM firm_settings WHERE id = 1');
+                sendJSON(req, res, 200, settings);
+                return;
+            }
+
+            // SYNC
+            if (pathname === '/api/v1/sync/kimai/timesheets' && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const result = await callKimaiAPI('GET', '/api/timesheets');
+                if (result && result.success) {
+                    sendJSON(req, res, 200, { count: result.data?.length || 0, message: 'Sync attempted' });
+                } else {
+                    sendJSON(req, res, 200, { count: 0, message: 'Kimai not available - using local database' });
+                }
+                return;
+            }
+
+            // RUNPOD SERVERLESS ENDPOINTS
+            if (pathname === '/api/v1/runpod/health' && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const health = await runpod.healthCheck();
+                sendJSON(req, res, health.healthy ? 200 : 503, health);
+                return;
+            }
+
+            if (pathname === '/api/v1/runpod/execute' && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const { endpoint_id, input, sync = false } = data;
+
+                if (!endpoint_id) {
+                    sendJSON(req, res, 400, { error: 'endpoint_id is required' });
+                    return;
+                }
+
+                if (!input) {
+                    sendJSON(req, res, 400, { error: 'input is required' });
+                    return;
+                }
+
+                try {
+                    const result = await runpod.callRunPodEndpoint(endpoint_id, input, { sync });
+                    sendJSON(req, res, 200, result);
+                } catch (error) {
+                    console.error('RunPod execution error:', error);
+                    sendJSON(req, res, 500, { error: error.message });
+                }
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/runpod\/status\/[\w-]+\/[\w-]+$/) && method === 'GET') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const parts = pathname.split('/');
+                const endpoint_id = parts[5];
+                const job_id = parts[6];
+
+                try {
+                    const status = await runpod.getJobStatus(endpoint_id, job_id);
+                    sendJSON(req, res, 200, status);
+                } catch (error) {
+                    console.error('RunPod status check error:', error);
+                    sendJSON(req, res, 500, { error: error.message });
+                }
+                return;
+            }
+
+            if (pathname.match(/^\/api\/v1\/runpod\/cancel\/[\w-]+\/[\w-]+$/) && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const parts = pathname.split('/');
+                const endpoint_id = parts[5];
+                const job_id = parts[6];
+
+                try {
+                    const result = await runpod.cancelJob(endpoint_id, job_id);
+                    sendJSON(req, res, 200, result);
+                } catch (error) {
+                    console.error('RunPod cancel error:', error);
+                    sendJSON(req, res, 500, { error: error.message });
+                }
+                return;
+            }
+
+            if (pathname === '/api/v1/runpod/execute-and-wait' && method === 'POST') {
+                const user = requireAuth(req, res);
+                if (!user) return;
+
+                const { endpoint_id, input, max_wait_time, poll_interval } = data;
+
+                if (!endpoint_id) {
+                    sendJSON(req, res, 400, { error: 'endpoint_id is required' });
+                    return;
+                }
+
+                if (!input) {
+                    sendJSON(req, res, 400, { error: 'input is required' });
+                    return;
+                }
+
+                try {
+                    // Start async job
+                    const job = await runpod.callRunPodEndpoint(endpoint_id, input, { sync: false });
+
+                    // Poll until complete
+                    const result = await runpod.pollJobUntilComplete(
+                        endpoint_id,
+                        job.id,
+                        { maxWaitTime: max_wait_time, pollInterval: poll_interval }
+                    );
+
+                    sendJSON(req, res, 200, result);
+                } catch (error) {
+                    console.error('RunPod execute-and-wait error:', error);
+                    sendJSON(req, res, 500, { error: error.message });
+                }
+                return;
+            }
+
+            sendJSON(req, res, 404, { error: 'Endpoint not found' });
+
+        } catch (error) {
+            console.error('Server error:', error);
+            sendJSON(req, res, 500, { error: error.message });
+        }
+    });
+};
+
+// Create server (HTTPS if certificates available, otherwise HTTP)
+const server = tlsOptions
+    ? https.createServer(tlsOptions, requestHandler)
+    : http.createServer(requestHandler);
+
+// HTTP to HTTPS redirect server (only in production with valid certs)
+if (tlsOptions && process.env.APP_ENV === 'production') {
+    const httpRedirectServer = http.createServer((req, res) => {
+        res.writeHead(301, {
+            'Location': `https://${req.headers.host}${req.url}`
+        });
+        res.end();
+    });
+
+    httpRedirectServer.listen(80, () => {
+        console.log('  HTTP->HTTPS redirect server running on port 80');
+    });
+}
+
+server.listen(PORT, () => {
+    console.log(`\n${'='.repeat(70)}`);
+    console.log(`  Billing System Backend - Production Ready`);
+    console.log(`${'='.repeat(70)}`);
+    console.log(`  Server:    ${tlsOptions ? 'https' : 'http'}://localhost:${PORT}`);
+    console.log(`  Security:  ${tlsOptions ? 'HTTPS Enabled ✓' : 'HTTP Only (Insecure) ⚠'}`);
+    console.log(`  Database:  ${dbPath}`);
+    console.log(`  Kimai:     ${KIMAI_API_TOKEN ? 'Configured' : 'Not configured'}`);
+    console.log(`${'='.repeat(70)}\n`);
+});

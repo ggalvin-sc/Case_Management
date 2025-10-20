@@ -6,40 +6,20 @@
     <title>Time Entry - Case Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Select2 for searchable dropdowns -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="../css/select2-tailwind.css">
+    <script src="../js/nav.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="../js/searchable-select.js"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <h1 class="text-xl font-bold text-gray-800">Case Management</h1>
-                    </div>
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                        <a href="../index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Dashboard
-                        </a>
-                        <a href="matters.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Matters
-                        </a>
-                        <a href="billing.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Time Entry
-                        </a>
-                        <a href="expenses.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Expenses
-                        </a>
-                    </div>
-                </div>
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-700 mr-4" id="userDisplay">User</span>
-                    <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">Logout</button>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <div id="app-nav"></div>
+    <script>renderNav('billing');</script>
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -175,6 +155,11 @@
                 const select = document.getElementById('clientFilter');
                 select.innerHTML = '<option value="">All Clients</option>' +
                     allClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+                // Refresh Select2 dropdown
+                if (typeof refreshSelect === 'function') {
+                    refreshSelect('clientFilter');
+                }
             } catch (error) {
                 console.error('Error loading clients:', error);
             }
@@ -189,8 +174,10 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const matterId = urlParams.get('matter_id');
                 if (matterId) {
-                    document.getElementById('matterSelect').value = matterId;
-                    updateRate();
+                    // Wait for Select2 to initialize
+                    setTimeout(() => {
+                        $('#matterSelect').val(matterId).trigger('change');
+                    }, 700);
                 }
             } catch (error) {
                 console.error('Error loading matters:', error);
@@ -211,6 +198,11 @@
                     const clientName = m.client_name || 'Unknown Client';
                     return `<option value="${m.id}" data-rate="${m.hourly_rate || ''}" data-client="${m.client_id}">${clientName} - ${m.name} (${m.matter_number})</option>`;
                 }).join('');
+
+            // Refresh Select2 dropdown
+            if (typeof refreshSelect === 'function') {
+                refreshSelect('matterSelect');
+            }
         }
 
         async function loadRecentEntries() {
@@ -237,9 +229,11 @@
 
         async function updateRate() {
             const select = document.getElementById('matterSelect');
-            const selectedOption = select.options[select.selectedIndex];
-            const rate = selectedOption.getAttribute('data-rate');
             const matterId = select.value;
+
+            // Get the selected option (works with both regular select and Select2)
+            const selectedOption = select.querySelector(`option[value="${matterId}"]`);
+            const rate = selectedOption ? selectedOption.getAttribute('data-rate') : null;
 
             // Use rate from matter, or default to $350 if not set
             const finalRate = rate && parseFloat(rate) > 0 ? parseFloat(rate) : 350;
@@ -252,6 +246,10 @@
                 await loadActivitiesForMatter(matterId);
             } else {
                 document.getElementById('activityCode').innerHTML = '<option value="">Select matter first...</option>';
+                // Refresh Select2 for activity dropdown
+                if (typeof refreshSelect === 'function') {
+                    refreshSelect('activityCode');
+                }
             }
 
             calculateAmount();
@@ -275,9 +273,18 @@
                     select.innerHTML = '<option value="">Select Activity...</option>' +
                         activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
                 }
+
+                // Refresh Select2 dropdown
+                if (typeof refreshSelect === 'function') {
+                    refreshSelect('activityCode');
+                }
             } catch (error) {
                 console.error('Error loading activities:', error);
                 document.getElementById('activityCode').innerHTML = '<option value="">Error loading activities</option>';
+                // Refresh Select2 dropdown even on error
+                if (typeof refreshSelect === 'function') {
+                    refreshSelect('activityCode');
+                }
             }
         }
 
@@ -388,8 +395,11 @@
         }
 
         // Event listeners
-        document.getElementById('clientFilter').addEventListener('change', filterMatters);
-        document.getElementById('matterSelect').addEventListener('change', updateRate);
+        // Use Select2 events with jQuery (wait for Select2 initialization)
+        setTimeout(() => {
+            $('#clientFilter').on('change', filterMatters);
+            $('#matterSelect').on('change', updateRate);
+        }, 600);
         document.getElementById('duration').addEventListener('input', calculateAmount);
 
         // Initialize

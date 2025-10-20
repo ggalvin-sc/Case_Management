@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upstatement Effects Demo</title>
+    <link rel="stylesheet" href="css/upstatement-effects.css">
+    <style>
+        /* Demo-specific styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 40px;
+        }
+
+        .demo-section {
+            margin-bottom: 120px;
+        }
+
+        .demo-section h2 {
+            margin-bottom: 40px;
+            font-size: 48px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .demo-card {
+            aspect-ratio: 16 / 9;
+            background: var(--color-gray-dark);
+            position: relative;
+        }
+
+        /* Demo hero */
+        .demo-hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .demo-hero h1 {
+            font-size: 72px;
+            margin-bottom: 30px;
+        }
+
+        /* Image placeholder */
+        .demo-image {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        /* Button demo grid */
+        .button-demo {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* Nav demo */
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav__links {
+            display: flex;
+            gap: 30px;
+        }
+
+        /* Form demo */
+        .form-demo {
+            max-width: 500px;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav__logo">
+            <a href="#" class="nav__link">DEMO</a>
+        </div>
+        <div class="nav__links">
+            <a href="#buttons" class="nav__link">Buttons</a>
+            <a href="#images" class="nav__link">Images</a>
+            <a href="#cards" class="nav__link">Cards</a>
+            <a href="#forms" class="nav__link">Forms</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="demo-hero scroll-reveal">
+        <div>
+            <h1>Upstatement Effects</h1>
+            <p class="mb-lg">A complete design system inspired by upstatement.com</p>
+            <button class="btn">Explore Effects</button>
+        </div>
+    </section>
+
+    <div class="demo-container">
+
+        <!-- Buttons Section -->
+        <section id="buttons" class="demo-section scroll-reveal">
+            <h2>Button Styles</h2>
+            <p class="mb-lg">Hover to see background color transition</p>
+
+            <div class="button-demo">
+                <button class="btn">Primary Button</button>
+                <button class="btn btn-circle">+</button>
+                <a href="#" class="btn">Link Button</a>
+            </div>
+        </section>
+
+        <!-- Image Hover Effects -->
+        <section id="images" class="demo-section">
+            <h2 class="scroll-reveal">Image Hover Effects</h2>
+            <p class="mb-lg scroll-reveal">Signature 7-second slow zoom on hover</p>
+
+            <div class="demo-grid scroll-reveal-stagger">
+                <div class="image-hover-container demo-card">
+                    <div class="image-hover-zoom demo-image">
+                        Hover for 7s zoom
+                    </div>
+                </div>
+                <div class="image-hover-container demo-card">
+                    <div class="image-hover-zoom demo-image">
+                        Slow & smooth
+                    </div>
+                </div>
+                <div class="image-hover-container demo-card">
+                    <div class="image-hover-zoom demo-image">
+                        Custom cubic-bezier
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cards Section -->
+        <section id="cards" class="demo-section">
+            <h2 class="scroll-reveal">Card Styles</h2>
+            <p class="mb-lg scroll-reveal">Minimal, clean, and interactive</p>
+
+            <div class="demo-grid scroll-reveal-stagger">
+                <div class="card">
+                    <h3 class="mb-md">Card Title</h3>
+                    <p>This card has a subtle hover effect with border color change and lift animation.</p>
+                </div>
+                <div class="card">
+                    <h3 class="mb-md">Another Card</h3>
+                    <p>Hover to see the border glow and slight transform.</p>
+                </div>
+                <div class="card">
+                    <h3 class="mb-md">Third Card</h3>
+                    <p>All using custom cubic-bezier easing functions.</p>
+                </div>
+            </div>
+
+            <h3 class="mb-md mt-xl scroll-reveal">Minimal Cards</h3>
+            <div class="demo-grid scroll-reveal-stagger">
+                <div class="card-minimal">
+                    <div class="image-hover-container demo-card mb-md">
+                        <div class="image-hover-zoom demo-image">Image</div>
+                    </div>
+                    <h4>Minimal Card Title</h4>
+                    <p class="text-small">No borders, just content and hover opacity.</p>
+                </div>
+                <div class="card-minimal">
+                    <div class="image-hover-container demo-card mb-md">
+                        <div class="image-hover-zoom demo-image">Image</div>
+                    </div>
+                    <h4>Minimal Card Title</h4>
+                    <p class="text-small">Clean and editorial style.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Forms Section -->
+        <section id="forms" class="demo-section">
+            <h2 class="scroll-reveal">Form Styles</h2>
+            <p class="mb-lg scroll-reveal">Minimalist inputs with bottom borders</p>
+
+            <form class="form-demo scroll-reveal">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" placeholder="John Doe">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="john@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" rows="5" placeholder="Your message here..."></textarea>
+                </div>
+
+                <button type="submit" class="btn">Send Message</button>
+            </form>
+        </section>
+
+        <!-- Link Styles -->
+        <section class="demo-section scroll-reveal">
+            <h2>Link Styles</h2>
+            <p class="mb-lg">
+                This is a <a href="#" class="link-underline">link with underline on hover</a>,
+                and this is a <a href="#">standard link</a>.
+            </p>
+        </section>
+
+        <!-- Typography -->
+        <section class="demo-section">
+            <h2 class="scroll-reveal">Typography Scale</h2>
+
+            <div class="scroll-reveal-stagger">
+                <h1 class="mb-md">Heading 1 - Display Font</h1>
+                <h2 class="mb-md">Heading 2 - Display Font</h2>
+                <h3 class="mb-md">Heading 3 - Display Font</h3>
+                <p class="mb-md">Body text using GT America. Font size: 19.4px, Line height: 27.16px. This demonstrates the generous spacing and readability of the Upstatement typography system.</p>
+                <p class="text-small">Small text for captions and metadata.</p>
+            </div>
+        </section>
+
+        <!-- Animation Examples -->
+        <section class="demo-section">
+            <h2 class="scroll-reveal">Animations</h2>
+
+            <div class="demo-grid scroll-reveal-stagger">
+                <div class="card">
+                    <div class="blob-wiggle mb-md" style="width: 60px; height: 60px; background: var(--color-accent); border-radius: 50%;"></div>
+                    <h4>Blob Wiggle</h4>
+                    <p class="text-small">Organic wiggle animation</p>
+                </div>
+
+                <div class="card">
+                    <div class="color-cycle mb-md" style="width: 60px; height: 60px; border-radius: 50%;"></div>
+                    <h4>Color Cycle</h4>
+                    <p class="text-small">Palette cycling animation</p>
+                </div>
+
+                <div class="card">
+                    <div class="spin mb-md" style="width: 60px; height: 60px; border: 2px solid var(--color-white); border-top-color: transparent; border-radius: 50%;"></div>
+                    <h4>Spin</h4>
+                    <p class="text-small">Loading spinner</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scroll Reveal Demo -->
+        <section class="demo-section">
+            <h2 class="scroll-reveal">Scroll Reveal</h2>
+            <p class="mb-lg scroll-reveal">Elements fade in as you scroll</p>
+
+            <div class="scroll-reveal-stagger">
+                <div class="card mb-md">
+                    <h4>Item 1</h4>
+                    <p>This item reveals first</p>
+                </div>
+                <div class="card mb-md">
+                    <h4>Item 2</h4>
+                    <p>Then this one</p>
+                </div>
+                <div class="card mb-md">
+                    <h4>Item 3</h4>
+                    <p>Then this one</p>
+                </div>
+                <div class="card mb-md">
+                    <h4>Item 4</h4>
+                    <p>And finally this one</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Utility Classes -->
+        <section class="demo-section scroll-reveal">
+            <h2>Utility Classes</h2>
+            <p class="mb-lg">Pre-built spacing, typography, and layout utilities</p>
+
+            <div class="flex gap-md mb-md">
+                <code>.mb-sm</code>
+                <code>.mb-md</code>
+                <code>.mb-lg</code>
+                <code>.mb-xl</code>
+                <code>.mb-2xl</code>
+            </div>
+
+            <div class="flex gap-md mb-md">
+                <code>.text-light</code>
+                <code>.text-regular</code>
+                <code>.text-medium</code>
+            </div>
+
+            <div class="flex gap-md">
+                <code>.flex</code>
+                <code>.items-center</code>
+                <code>.gap-md</code>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="demo-section scroll-reveal" style="text-align: center; padding: 80px 0; border-top: 1px solid var(--color-white-20);">
+            <p>Upstatement-inspired design system</p>
+            <p class="text-small mt-sm">Extracted and implemented 2025</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/scroll-reveal.js"></script>
+    <script>
+        // Add scrolled class to nav on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('.nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>

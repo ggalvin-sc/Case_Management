@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant - Case Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Select2 for searchable dropdowns -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="../css/select2-tailwind.css">
+    <script src="../js/nav.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/searchable-select.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <div id="app-nav"></div>
+    <script>renderNav('ai');</script>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">AI Legal Assistant</h1>
+            <p class="mt-2 text-sm text-gray-600">Ask legal questions and get AI-powered answers</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Question Input -->
+            <div class="lg:col-span-2">
+                <div class="bg-white shadow rounded-lg p-6 mb-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-comment-dots text-blue-500 mr-2"></i>
+                        Ask a Question
+                    </h2>
+
+                    <form id="questionForm" class="space-y-4">
+                        <div>
+                            <label for="question" class="block text-sm font-medium text-gray-700 mb-2">
+                                Your Question
+                            </label>
+                            <textarea
+                                id="question"
+                                rows="6"
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                placeholder="e.g., What is the statute of limitations for breach of contract in California?"
+                                required
+                            ></textarea>
+                            <p class="mt-2 text-xs text-gray-500">
+                                <i class="fas fa-info-circle"></i>
+                                Tip: Be specific and provide context for better answers
+                            </p>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-gray-500">
+                                <span id="charCount">0</span> characters
+                            </div>
+                            <button
+                                type="submit"
+                                id="submitBtn"
+                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Ask AI
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Answer Display -->
+                <div id="answerSection" class="bg-white shadow rounded-lg p-6 hidden">
+                    <div class="flex items-start justify-between mb-4">
+                        <h2 class="text-lg font-medium text-gray-900">
+                            <i class="fas fa-robot text-green-500 mr-2"></i>
+                            AI Answer
+                        </h2>
+                        <span id="executionTime" class="text-xs text-gray-500"></span>
+                    </div>
+
+                    <div id="questionDisplay" class="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <p class="text-sm font-medium text-blue-900">Question:</p>
+                        <p class="text-sm text-blue-800 mt-1"></p>
+                    </div>
+
+                    <div id="answerDisplay" class="prose max-w-none">
+                        <!-- Answer will be inserted here -->
+                    </div>
+
+                    <div class="mt-6 flex items-center justify-between border-t pt-4">
+                        <button
+                            onclick="copyAnswer()"
+                            class="text-sm text-gray-600 hover:text-gray-900"
+                        >
+                            <i class="fas fa-copy mr-1"></i>
+                            Copy Answer
+                        </button>
+                        <button
+                            onclick="newQuestion()"
+                            class="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                            <i class="fas fa-plus mr-1"></i>
+                            New Question
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingSection" class="bg-white shadow rounded-lg p-6 hidden">
+                    <div class="flex items-center justify-center py-12">
+                        <div class="text-center">
+                            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                            <p class="text-sm text-gray-600">Processing your question...</p>
+                            <p class="text-xs text-gray-500 mt-2">This may take a few moments</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorSection" class="bg-white shadow rounded-lg p-6 hidden">
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-circle text-red-500 text-5xl mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Unable to Process Question</h3>
+                        <p id="errorMessage" class="text-sm text-gray-600 mb-6"></p>
+                        <button
+                            onclick="newQuestion()"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <!-- Quick Tips -->
+                <div class="bg-white shadow rounded-lg p-6 mb-6">
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">
+                        <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                        Tips for Better Answers
+                    </h3>
+                    <ul class="space-y-3 text-sm text-gray-600">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                            <span>Be specific about jurisdiction (state/federal)</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                            <span>Provide relevant context and details</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                            <span>Ask one question at a time</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                            <span>Review answers with legal counsel</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Sample Questions -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">
+                        <i class="fas fa-question-circle text-blue-500 mr-2"></i>
+                        Sample Questions
+                    </h3>
+                    <div class="space-y-2">
+                        <button
+                            onclick="setQuestion('What is the statute of limitations for breach of contract in California?')"
+                            class="w-full text-left text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded"
+                        >
+                            Statute of limitations (CA)
+                        </button>
+                        <button
+                            onclick="setQuestion('What are the elements of a valid contract?')"
+                            class="w-full text-left text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded"
+                        >
+                            Elements of a contract
+                        </button>
+                        <button
+                            onclick="setQuestion('What is the difference between mediation and arbitration?')"
+                            class="w-full text-left text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded"
+                        >
+                            Mediation vs arbitration
+                        </button>
+                        <button
+                            onclick="setQuestion('What is discovery in civil litigation?')"
+                            class="w-full text-left text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded"
+                        >
+                            Discovery process
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Questions -->
+                <div class="bg-white shadow rounded-lg p-6 mt-6">
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">
+                        <i class="fas fa-history text-gray-500 mr-2"></i>
+                        Recent Questions
+                    </h3>
+                    <div id="recentQuestions" class="space-y-2">
+                        <p class="text-xs text-gray-500">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Character counter
+        document.getElementById('question').addEventListener('input', (e) => {
+            document.getElementById('charCount').textContent = e.target.value.length;
+        });
+
+        // Form submission
+        document.getElementById('questionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const question = document.getElementById('question').value.trim();
+            if (!question) return;
+
+            // Show loading
+            document.getElementById('answerSection').classList.add('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.remove('hidden');
+            document.getElementById('submitBtn').disabled = true;
+
+            try {
+                const response = await api.post('/ai/ask', { question });
+
+                // Hide loading, show answer
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('answerSection').classList.remove('hidden');
+
+                // Display question and answer
+                document.querySelector('#questionDisplay p:last-child').textContent = question;
+                document.getElementById('answerDisplay').innerHTML = formatAnswer(response.answer);
+
+                if (response.execution_time) {
+                    document.getElementById('executionTime').textContent =
+                        `Answered in ${(response.execution_time / 1000).toFixed(2)}s`;
+                }
+
+                // Refresh recent questions
+                loadRecentQuestions();
+
+            } catch (error) {
+                console.error('Error asking question:', error);
+
+                // Show error
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('errorSection').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent =
+                    error.details || error.message || 'The AI service is currently unavailable. Please try again later.';
+            } finally {
+                document.getElementById('submitBtn').disabled = false;
+            }
+        });
+
+        function formatAnswer(answer) {
+            if (!answer) return '<p class="text-gray-500">No answer provided</p>';
+
+            // Ensure answer is a string
+            if (typeof answer !== 'string') {
+                // If it's an object, try to extract text content
+                if (typeof answer === 'object') {
+                    // Try common response formats
+                    if (answer.text) {
+                        answer = answer.text;
+                    } else if (answer.content) {
+                        answer = answer.content;
+                    } else if (answer.message) {
+                        answer = answer.message;
+                    } else if (Array.isArray(answer) && answer.length > 0) {
+                        answer = answer[0];
+                    } else {
+                        // Pretty print JSON as fallback
+                        answer = JSON.stringify(answer, null, 2);
+                    }
+                } else {
+                    answer = String(answer);
+                }
+            }
+
+            // Convert newlines to paragraphs
+            const paragraphs = answer.split('\n').filter(p => p.trim());
+            return paragraphs.map(p => `<p class="mb-3">${escapeHtml(p)}</p>`).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function setQuestion(question) {
+            document.getElementById('question').value = question;
+            document.getElementById('charCount').textContent = question.length;
+            document.getElementById('question').focus();
+        }
+
+        function newQuestion() {
+            document.getElementById('question').value = '';
+            document.getElementById('charCount').textContent = '0';
+            document.getElementById('answerSection').classList.add('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('question').focus();
+        }
+
+        function copyAnswer() {
+            const answerText = document.getElementById('answerDisplay').innerText;
+            navigator.clipboard.writeText(answerText).then(() => {
+                // Show temporary success message
+                const btn = event.target.closest('button');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            });
+        }
+
+        async function loadRecentQuestions() {
+            try {
+                const questions = await api.get('/ai/questions');
+                const container = document.getElementById('recentQuestions');
+
+                if (questions.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-gray-500">No recent questions</p>';
+                    return;
+                }
+
+                container.innerHTML = questions.slice(0, 5).map(q => `
+                    <button
+                        onclick="viewQuestion(${q.id})"
+                        class="w-full text-left text-xs text-gray-700 hover:bg-gray-50 p-2 rounded block truncate"
+                        title="${escapeHtml(q.question)}"
+                    >
+                        ${escapeHtml(q.question.substring(0, 50))}${q.question.length > 50 ? '...' : ''}
+                    </button>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading recent questions:', error);
+            }
+        }
+
+        async function viewQuestion(id) {
+            try {
+                const question = await api.get(`/ai/questions/${id}`);
+
+                document.querySelector('#questionDisplay p:last-child').textContent = question.question;
+                document.getElementById('answerDisplay').innerHTML = formatAnswer(question.answer);
+
+                if (question.execution_time) {
+                    document.getElementById('executionTime').textContent =
+                        `Answered in ${(question.execution_time / 1000).toFixed(2)}s`;
+                }
+
+                document.getElementById('answerSection').classList.remove('hidden');
+                document.getElementById('errorSection').classList.add('hidden');
+
+                // Scroll to answer
+                document.getElementById('answerSection').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Error viewing question:', error);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadRecentQuestions();
+        });
+    </script>
+</body>
+</html>

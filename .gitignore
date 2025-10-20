@@ -1,0 +1,71 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+
+# Database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+billing_backup_*.db
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+npm-debug.log*
+server.log
+
+# TLS/SSL Certificates
+certs/
+*.pem
+*.key
+*.crt
+*.csr
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+nul
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Build outputs
+dist/
+build/
+*.tgz
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Playwright
+playwright-report/
+test-results/
+test-results.json/
+
+# Rust build artifacts
+backend-rust/target/
+backend-rust/Cargo.lock
+
+# RunPod test scripts (may contain secrets)
+*_runpod_*.js
+check_endpoint*.js
+query_*.js
+update_endpoint*.js

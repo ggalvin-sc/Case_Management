@@ -1,0 +1,89 @@
+###
+# RunPod Rust Service - HTTP Examples
+# Use with REST Client extension in VS Code
+# Or copy/paste curl commands into terminal
+###
+
+@baseUrl = http://localhost:3001
+@endpointId = your-endpoint-id-here
+
+### 1. Health Check
+GET {{baseUrl}}/health
+
+### 2. RunPod API Health Check
+GET {{baseUrl}}/api-health
+
+### 3. Execute Endpoint (Synchronous)
+POST {{baseUrl}}/execute
+Content-Type: application/json
+
+{
+  "endpoint_id": "{{endpointId}}",
+  "input": {
+    "prompt": "Hello from Rust service!",
+    "temperature": 0.7
+  },
+  "sync": true,
+  "timeout": 30000
+}
+
+### 4. Execute Endpoint (Asynchronous)
+POST {{baseUrl}}/execute
+Content-Type: application/json
+
+{
+  "endpoint_id": "{{endpointId}}",
+  "input": {
+    "prompt": "This is an async job",
+    "max_tokens": 100
+  },
+  "sync": false,
+  "timeout": 30000
+}
+
+### 5. Get Job Status
+# Replace 'job-123' with actual job ID from async execution
+GET {{baseUrl}}/status/{{endpointId}}/job-123
+
+### 6. Cancel Job
+# Replace 'job-123' with actual job ID
+POST {{baseUrl}}/cancel/{{endpointId}}/job-123
+
+### 7. Poll Job Until Complete
+# Replace 'job-123' with actual job ID
+POST {{baseUrl}}/poll/{{endpointId}}/job-123
+Content-Type: application/json
+
+{
+  "max_wait_time": 300000,
+  "poll_interval": 2000
+}
+
+### 8. Poll with Default Settings
+POST {{baseUrl}}/poll/{{endpointId}}/job-123
+Content-Type: application/json
+
+{}
+
+###
+# Curl Command Examples
+###
+
+# Health Check
+# curl http://localhost:3001/health
+
+# Execute Sync
+# curl -X POST http://localhost:3001/execute \
+#   -H "Content-Type: application/json" \
+#   -d '{"endpoint_id":"your-endpoint-id","input":{"prompt":"test"},"sync":true,"timeout":30000}'
+
+# Get Status
+# curl http://localhost:3001/status/your-endpoint-id/job-123
+
+# Cancel Job
+# curl -X POST http://localhost:3001/cancel/your-endpoint-id/job-123
+
+# Poll Job
+# curl -X POST http://localhost:3001/poll/your-endpoint-id/job-123 \
+#   -H "Content-Type: application/json" \
+#   -d '{"max_wait_time":300000,"poll_interval":2000}'

@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-10-07T20:37:50.352Z",
+  "totalEndpoints": 1,
+  "endpoints": [
+    {
+      "id": "3hm50vlw5z2y5o",
+      "name": "vLLM -fb",
+      "version": 1,
+      "type": "QB",
+      "templateId": "pfvwepxneh",
+      "gpuIds": "ADA_80_PRO,AMPERE_80,ADA_48_PRO,AMPERE_48,ADA_24,AMPERE_24,AMPERE_16",
+      "workersMin": 0,
+      "workersMax": 3,
+      "workersStandby": 3,
+      "idleTimeout": 5,
+      "scalerType": "QUEUE_DELAY",
+      "scalerValue": 4,
+      "locations": null,
+      "networkVolumeId": null,
+      "userId": "user_2vQCnzoW3ef6mna7CJG9EY60VEk"
+    }
+  ]
+}

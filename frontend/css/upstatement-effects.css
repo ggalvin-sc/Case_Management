@@ -1,0 +1,606 @@
+/**
+ * Upstatement-Inspired Design System
+ * Extracted: 2025-10-07
+ *
+ * Key Principles:
+ * - Slow, deliberate animations (7s image zooms)
+ * - Custom cubic-bezier easing for organic feel
+ * - High contrast (black/white core)
+ * - Generous spacing
+ * - Editorial elegance
+ */
+
+/* ============================================
+   CUSTOM PROPERTIES (CSS VARIABLES)
+   ============================================ */
+
+:root {
+  /* Colors */
+  --color-black: rgb(0, 0, 0);
+  --color-white: rgb(255, 255, 255);
+  --color-gray-dark: rgb(31, 31, 31);
+  --color-gray-medium: rgb(133, 133, 133);
+  --color-gray-light: rgb(128, 128, 128);
+  --color-accent: rgb(255, 60, 94);
+  --color-white-20: rgba(255, 255, 255, 0.2);
+
+  /* Typography */
+  --font-primary: "GT America", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "TT Ramillas", Georgia, serif;
+
+  --font-size-base: 19.4px;
+  --font-size-small: 15.7px;
+  --font-size-h3: 55.179px;
+  --font-size-h1: 71.6421px;
+
+  --font-weight-light: 100;
+  --font-weight-regular: 300;
+  --font-weight-medium: 500;
+
+  --line-height-base: 1.4;
+  --line-height-tight: 1.1;
+
+  /* Spacing */
+  --spacing-xs: 10px;
+  --spacing-sm: 20px;
+  --spacing-md: 30px;
+  --spacing-lg: 40px;
+  --spacing-xl: 80px;
+  --spacing-2xl: 115.2px;
+
+  /* Transitions - Custom Cubic Beziers */
+  --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-reveal: cubic-bezier(0.215, 0.61, 0.355, 1);
+
+  /* Transition Durations */
+  --duration-fast: 0.2s;
+  --duration-medium: 0.3s;
+  --duration-slow: 0.8s;
+  --duration-image-zoom: 7s;
+
+  /* Border Radius */
+  --radius-pill: 100px;
+  --radius-circle: 50%;
+  --radius-medium: 14px;
+  --radius-small: 7px;
+}
+
+/* ============================================
+   BASE TYPOGRAPHY
+   ============================================ */
+
+body {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-base);
+  color: var(--color-white);
+  background-color: var(--color-black);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-light);
+  line-height: var(--line-height-tight);
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  letter-spacing: -2.14926px;
+}
+
+h2 {
+  font-size: var(--font-size-h3);
+  letter-spacing: -1.10358px;
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-light);
+}
+
+p {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  line-height: 27.16px;
+}
+
+/* ============================================
+   BUTTON STYLES
+   ============================================ */
+
+.btn,
+.button,
+button.upstatement-style {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  padding: 9px 15px 10px;
+  border: 1px solid var(--color-white);
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--color-white);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-snappy),
+    color var(--duration-fast) var(--ease-snappy),
+    border-color var(--duration-fast) var(--ease-snappy);
+}
+
+.btn:hover,
+.button:hover,
+button.upstatement-style:hover {
+  background-color: var(--color-white);
+  color: var(--color-black);
+  border-color: var(--color-white);
+}
+
+.btn-circle {
+  padding: 0;
+  border-radius: var(--radius-circle);
+  width: 60px;
+  height: 60px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   LINK STYLES
+   ============================================ */
+
+a {
+  color: var(--color-white);
+  text-decoration: none;
+  transition: opacity var(--duration-medium) ease;
+}
+
+a:hover {
+  opacity: 0.7;
+}
+
+/* Underline on hover effect */
+a.link-underline {
+  position: relative;
+}
+
+a.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: var(--color-white);
+  transition: width var(--duration-fast) var(--ease-snappy);
+}
+
+a.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ============================================
+   IMAGE HOVER EFFECTS (SIGNATURE UPSTATEMENT)
+   ============================================ */
+
+.image-hover-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-hover-zoom {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--duration-image-zoom) var(--ease-smooth);
+  transform: scale(1);
+}
+
+.image-hover-container:hover .image-hover-zoom {
+  transform: scale(1.05);
+}
+
+/* Dual image hover effect (like Upstatement teases) */
+.dual-image-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.dual-image-hover__base {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s var(--ease-smooth);
+}
+
+.dual-image-hover__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition:
+    opacity var(--duration-medium) var(--ease-snappy),
+    transform var(--duration-image-zoom) var(--ease-smooth);
+  transform: scale(1);
+}
+
+.dual-image-hover:hover .dual-image-hover__overlay {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* ============================================
+   CARD STYLES
+   ============================================ */
+
+.card {
+  background-color: transparent;
+  border: 1px solid var(--color-white-20);
+  border-radius: var(--radius-medium);
+  padding: var(--spacing-lg);
+  transition:
+    border-color var(--duration-fast) var(--ease-snappy),
+    transform var(--duration-fast) var(--ease-snappy);
+}
+
+.card:hover {
+  border-color: var(--color-white);
+  transform: translateY(-2px);
+}
+
+.card-minimal {
+  background: transparent;
+  border: none;
+  padding: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+
+.card-minimal:hover {
+  opacity: 0.9;
+}
+
+/* ============================================
+   SCROLL REVEAL ANIMATIONS
+   ============================================ */
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity var(--duration-slow) var(--ease-reveal),
+    transform var(--duration-slow) var(--ease-reveal);
+}
+
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered reveal for lists */
+.scroll-reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.scroll-reveal-stagger.is-visible > *:nth-child(1) {
+  animation: revealItem var(--duration-slow) var(--ease-reveal) 0s forwards;
+}
+
+.scroll-reveal-stagger.is-visible > *:nth-child(2) {
+  animation: revealItem var(--duration-slow) var(--ease-reveal) 0.1s forwards;
+}
+
+.scroll-reveal-stagger.is-visible > *:nth-child(3) {
+  animation: revealItem var(--duration-slow) var(--ease-reveal) 0.2s forwards;
+}
+
+.scroll-reveal-stagger.is-visible > *:nth-child(4) {
+  animation: revealItem var(--duration-slow) var(--ease-reveal) 0.3s forwards;
+}
+
+.scroll-reveal-stagger.is-visible > *:nth-child(5) {
+  animation: revealItem var(--duration-slow) var(--ease-reveal) 0.4s forwards;
+}
+
+/* ============================================
+   FORM STYLES
+   ============================================ */
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-white-20);
+  color: var(--color-white);
+  padding: 0 0 7px 0;
+  transition: border-color var(--duration-fast) var(--ease-snappy);
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-bottom-color: var(--color-white);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-gray-medium);
+}
+
+textarea {
+  padding: 15px;
+  border: 1px solid var(--color-white-20);
+  resize: vertical;
+}
+
+/* ============================================
+   NAVIGATION STYLES
+   ============================================ */
+
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: transparent;
+  z-index: 1000;
+  transition: background-color var(--duration-medium) ease;
+}
+
+.nav.scrolled {
+  background-color: var(--color-black);
+}
+
+.nav__link {
+  color: var(--color-white);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  text-decoration: none;
+  transition: opacity var(--duration-medium) ease;
+}
+
+.nav__link:hover {
+  opacity: 0.7;
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+
+@keyframes revealItem {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Blob/Goo wiggle effect */
+@keyframes blobWiggle {
+  0%, 100% {
+    transform: scaleY(0.9) skewX(-1deg);
+  }
+  50% {
+    transform: scaleY(1.2) skewX(1deg);
+  }
+}
+
+.blob-wiggle {
+  animation: blobWiggle 3s ease-in-out infinite;
+}
+
+/* Color palette cycling (for decorative elements) */
+@keyframes colorCycle {
+  0%, 100% {
+    background-color: rgb(255, 141, 156);
+  }
+  25% {
+    background-color: rgb(215, 230, 204);
+  }
+  50% {
+    background-color: rgb(112, 172, 232);
+  }
+  75% {
+    background-color: rgb(242, 215, 187);
+  }
+}
+
+.color-cycle {
+  animation: colorCycle 8s ease-in-out infinite;
+}
+
+/* Spin animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Scale down animation for images */
+@keyframes scaleDown {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.3);
+  }
+}
+
+/* Cursor blink */
+@keyframes cursorBlink {
+  0%, 49%, 100% {
+    opacity: 0;
+  }
+  50%, 99% {
+    opacity: 1;
+  }
+}
+
+.cursor-blink {
+  animation: cursorBlink 1s step-end infinite;
+}
+
+/* ============================================
+   LAZY LOAD EFFECTS
+   ============================================ */
+
+.lazy-img {
+  opacity: 0;
+  transition: opacity var(--duration-medium) var(--ease-snappy);
+}
+
+.lazy-img.loaded {
+  opacity: 1;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Spacing utilities */
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+.mb-xl { margin-bottom: var(--spacing-xl); }
+.mb-2xl { margin-bottom: var(--spacing-2xl); }
+
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+.mt-xl { margin-top: var(--spacing-xl); }
+.mt-2xl { margin-top: var(--spacing-2xl); }
+
+.p-md { padding: var(--spacing-md); }
+.p-lg { padding: var(--spacing-lg); }
+.p-xl { padding: var(--spacing-xl); }
+
+/* Text utilities */
+.text-light { font-weight: var(--font-weight-light); }
+.text-regular { font-weight: var(--font-weight-regular); }
+.text-medium { font-weight: var(--font-weight-medium); }
+
+.text-small { font-size: var(--font-size-small); }
+.text-base { font-size: var(--font-size-base); }
+
+/* Cursor utilities */
+.cursor-pointer { cursor: pointer; }
+.cursor-help { cursor: help; }
+
+/* Layout utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.gap-md { gap: var(--spacing-md); }
+.gap-lg { gap: var(--spacing-lg); }
+.gap-xl { gap: var(--spacing-xl); }
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+/* Mobile: 0-599px (default) */
+
+/* Tablet: 600px+ */
+@media (min-width: 600px) {
+  :root {
+    --font-size-base: 19.4px;
+  }
+}
+
+/* Desktop: 1070px+ */
+@media (min-width: 1070px) {
+  :root {
+    --spacing-2xl: 115.2px;
+  }
+}
+
+/* Large Desktop: 1400px+ */
+@media (min-width: 1400px) {
+  :root {
+    --font-size-h1: 71.6421px;
+    --font-size-h3: 55.179px;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   DARK MODE SUPPORT (Optional)
+   ============================================ */
+
+/* Already dark by default, but here's light mode if needed */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] {
+    --color-black: rgb(255, 255, 255);
+    --color-white: rgb(0, 0, 0);
+    --color-gray-dark: rgb(240, 240, 240);
+    --color-white-20: rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Force dark theme */
+[data-theme="dark"] {
+  --color-black: rgb(0, 0, 0);
+  --color-white: rgb(255, 255, 255);
+}
+
+/* Force light theme */
+[data-theme="light"] {
+  --color-black: rgb(255, 255, 255);
+  --color-white: rgb(0, 0, 0);
+  --color-gray-dark: rgb(240, 240, 240);
+  --color-white-20: rgba(0, 0, 0, 0.2);
+}

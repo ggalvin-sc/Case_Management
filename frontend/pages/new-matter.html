@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New Matter - Case Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Select2 for searchable dropdowns -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="../css/select2-tailwind.css">
+    <script src="../js/nav.js"></script>
+    <script src="../js/searchable-select.js"></script>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <div id="app-nav"></div>
+        <script>renderNav('');</script>
+
         <!-- Header -->
         <header class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -86,19 +97,6 @@
                         ></textarea>
                     </div>
 
-                    <!-- Responsible Attorney -->
-                    <div>
-                        <label for="attorney" class="block text-sm font-medium text-gray-700 mb-1">
-                            Responsible Attorney
-                        </label>
-                        <select
-                            id="attorney"
-                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Select attorney...</option>
-                        </select>
-                    </div>
-
                     <!-- Billing Type -->
                     <div>
                         <label for="billingType" class="block text-sm font-medium text-gray-700 mb-1">
@@ -107,11 +105,46 @@
                         <select
                             id="billingType"
                             class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            onchange="toggleBillingFields()"
                         >
                             <option value="hourly">Hourly</option>
                             <option value="flat_fee">Flat Fee</option>
                             <option value="contingency">Contingency</option>
                         </select>
+                    </div>
+
+                    <!-- Staff -->
+                    <div>
+                        <label for="attorney" class="block text-sm font-medium text-gray-700 mb-1">
+                            Staff
+                        </label>
+                        <select
+                            id="attorney"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Select staff...</option>
+                        </select>
+                    </div>
+
+                    <!-- Staff Hourly Rate Override (hidden for contingency) -->
+                    <div id="attorneyRateSection">
+                        <label for="attorneyHourlyRate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Staff Rate Override (for this case)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">$</span>
+                            <input
+                                type="number"
+                                id="attorneyHourlyRate"
+                                step="0.01"
+                                min="0"
+                                class="w-full border rounded-lg pl-8 pr-4 py-2 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Leave blank to use staff's default rate"
+                            >
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Override the staff's rate for this specific case
+                        </p>
                     </div>
 
                     <!-- Hourly Rate -->
@@ -135,6 +168,51 @@
                         </p>
                     </div>
 
+                    <!-- Contingency Percentages -->
+                    <div id="contingencyPercentageSection" style="display: none;">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="trialContingencyPercentage" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Trial Contingency %
+                                </label>
+                                <select
+                                    id="trialContingencyPercentage"
+                                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Select percentage...</option>
+                                    <option value="25">25%</option>
+                                    <option value="30">30%</option>
+                                    <option value="33.33">33.33% (1/3)</option>
+                                    <option value="35">35%</option>
+                                    <option value="40">40%</option>
+                                    <option value="45">45%</option>
+                                    <option value="50">50%</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="appealContingencyPercentage" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Appeal Contingency %
+                                </label>
+                                <select
+                                    id="appealContingencyPercentage"
+                                    class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Select percentage...</option>
+                                    <option value="25">25%</option>
+                                    <option value="30">30%</option>
+                                    <option value="33.33">33.33% (1/3)</option>
+                                    <option value="35">35%</option>
+                                    <option value="40">40%</option>
+                                    <option value="45">45%</option>
+                                    <option value="50">50%</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Percentage of recovery awarded to the firm for trial and appeal stages
+                        </p>
+                    </div>
+
                     <!-- Open Date -->
                     <div>
                         <label for="openDate" class="block text-sm font-medium text-gray-700 mb-1">
@@ -145,6 +223,188 @@
                             id="openDate"
                             class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                         >
+                    </div>
+
+                    <!-- Matter Type -->
+                    <div>
+                        <label for="matterType" class="block text-sm font-medium text-gray-700 mb-1">
+                            Matter Type
+                        </label>
+                        <select
+                            id="matterType"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Select type...</option>
+                            <option value="litigation">Litigation</option>
+                            <option value="transactional">Transactional</option>
+                            <option value="advisory">Advisory</option>
+                            <option value="compliance">Compliance</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Practice Area -->
+                    <div>
+                        <label for="practiceArea" class="block text-sm font-medium text-gray-700 mb-1">
+                            Practice Area
+                        </label>
+                        <input
+                            type="text"
+                            id="practiceArea"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., Corporate Law, Family Law, etc."
+                        >
+                    </div>
+
+                    <!-- Priority -->
+                    <div>
+                        <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">
+                            Priority
+                        </label>
+                        <select
+                            id="priority"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Select priority...</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+
+                    <!-- Court Name -->
+                    <div>
+                        <label for="courtName" class="block text-sm font-medium text-gray-700 mb-1">
+                            Court Name
+                        </label>
+                        <input
+                            type="text"
+                            id="courtName"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter court name (if applicable)"
+                        >
+                    </div>
+
+                    <!-- Case Number -->
+                    <div>
+                        <label for="caseNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                            Case Number
+                        </label>
+                        <input
+                            type="text"
+                            id="caseNumber"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter case number (if applicable)"
+                        >
+                    </div>
+
+                    <!-- Opposing Party -->
+                    <div>
+                        <label for="opposingParty" class="block text-sm font-medium text-gray-700 mb-1">
+                            Opposing Party
+                        </label>
+                        <input
+                            type="text"
+                            id="opposingParty"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter opposing party name"
+                        >
+                    </div>
+
+                    <!-- Opposing Counsel -->
+                    <div>
+                        <label for="opposingCounsel" class="block text-sm font-medium text-gray-700 mb-1">
+                            Opposing Counsel
+                        </label>
+                        <input
+                            type="text"
+                            id="opposingCounsel"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter opposing counsel name"
+                        >
+                    </div>
+
+                    <!-- Statute of Limitations Date -->
+                    <div>
+                        <label for="statuteDate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Statute of Limitations Date
+                        </label>
+                        <input
+                            type="date"
+                            id="statuteDate"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                    </div>
+
+                    <!-- Trial Date -->
+                    <div>
+                        <label for="trialDate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Trial Date
+                        </label>
+                        <input
+                            type="date"
+                            id="trialDate"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                    </div>
+
+                    <!-- Appeal Date -->
+                    <div>
+                        <label for="appealDate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Appeal Date
+                        </label>
+                        <input
+                            type="date"
+                            id="appealDate"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                        >
+                    </div>
+
+                    <!-- Retainer Amount -->
+                    <div>
+                        <label for="retainerAmount" class="block text-sm font-medium text-gray-700 mb-1">
+                            Retainer Amount
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">$</span>
+                            <input
+                                type="number"
+                                id="retainerAmount"
+                                step="0.01"
+                                min="0"
+                                class="w-full border rounded-lg pl-8 pr-4 py-2 focus:ring-2 focus:ring-blue-500"
+                                placeholder="0.00"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Estimated Hours -->
+                    <div>
+                        <label for="estimatedHours" class="block text-sm font-medium text-gray-700 mb-1">
+                            Estimated Hours
+                        </label>
+                        <input
+                            type="number"
+                            id="estimatedHours"
+                            step="0.5"
+                            min="0"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="0"
+                        >
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+                            Internal Notes
+                        </label>
+                        <textarea
+                            id="notes"
+                            rows="4"
+                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter internal notes (not visible to client)..."
+                        ></textarea>
                     </div>
 
                     <!-- Actions -->
@@ -200,7 +460,24 @@
 
                 const select = document.getElementById('attorney');
                 select.innerHTML = '<option value="">Select attorney...</option>' +
-                    users.map(u => `<option value="${u.id}">${u.first_name} ${u.last_name}</option>`).join('');
+                    users.map(u => {
+                        const rate = u.hourly_rate ? ` ($${parseFloat(u.hourly_rate).toFixed(2)}/hr)` : '';
+                        return `<option value="${u.id}" data-rate="${u.hourly_rate || 0}">${u.first_name} ${u.last_name}${rate}</option>`;
+                    }).join('');
+
+                // Auto-populate attorney rate override when attorney is selected
+                select.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const rate = selectedOption.getAttribute('data-rate');
+                    const rateInput = document.getElementById('attorneyHourlyRate');
+                    if (rate && parseFloat(rate) > 0) {
+                        rateInput.value = parseFloat(rate).toFixed(2);
+                        rateInput.placeholder = `Default: $${parseFloat(rate).toFixed(2)}/hr`;
+                    } else {
+                        rateInput.value = '';
+                        rateInput.placeholder = 'No default rate set';
+                    }
+                });
             } catch (error) {
                 console.error('Error loading attorneys:', error);
             }
@@ -219,18 +496,56 @@
             }
         }
 
+        function toggleBillingFields() {
+            const billingType = document.getElementById('billingType').value;
+            const hourlyRateSection = document.getElementById('hourlyRateSection');
+            const contingencySection = document.getElementById('contingencyPercentageSection');
+            const attorneyRateSection = document.getElementById('attorneyRateSection');
+
+            if (billingType === 'contingency') {
+                hourlyRateSection.style.display = 'none';
+                contingencySection.style.display = 'block';
+                attorneyRateSection.style.display = 'none'; // Hide attorney rate for contingency
+            } else if (billingType === 'flat') {
+                hourlyRateSection.style.display = 'block';
+                contingencySection.style.display = 'none';
+                attorneyRateSection.style.display = 'none'; // Hide attorney rate for flat fee
+            } else {
+                hourlyRateSection.style.display = 'block';
+                contingencySection.style.display = 'none';
+                attorneyRateSection.style.display = 'block'; // Show attorney rate only for hourly
+            }
+        }
+
         document.getElementById('matterForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const billingType = document.getElementById('billingType').value;
             const formData = {
                 client_id: parseInt(document.getElementById('client').value),
                 name: document.getElementById('name').value,
                 matter_number: document.getElementById('matterNumber').value || null,
                 description: document.getElementById('description').value,
-                responsible_attorney_id: document.getElementById('attorney').value ? parseInt(document.getElementById('attorney').value) : null,
-                billing_type: document.getElementById('billingType').value,
-                hourly_rate: document.getElementById('hourlyRate').value ? parseFloat(document.getElementById('hourlyRate').value) : null,
-                open_date: document.getElementById('openDate').value || new Date().toISOString().split('T')[0]
+                attorney_id: document.getElementById('attorney').value ? parseInt(document.getElementById('attorney').value) : null,
+                attorney_hourly_rate: document.getElementById('attorneyHourlyRate').value ? parseFloat(document.getElementById('attorneyHourlyRate').value) : null,
+                billing_type: billingType,
+                hourly_rate: billingType !== 'contingency' && document.getElementById('hourlyRate').value ? parseFloat(document.getElementById('hourlyRate').value) : null,
+                trial_contingency_percentage: billingType === 'contingency' && document.getElementById('trialContingencyPercentage').value ? parseFloat(document.getElementById('trialContingencyPercentage').value) : null,
+                appeal_contingency_percentage: billingType === 'contingency' && document.getElementById('appealContingencyPercentage').value ? parseFloat(document.getElementById('appealContingencyPercentage').value) : null,
+                open_date: document.getElementById('openDate').value || new Date().toISOString().split('T')[0],
+                matter_type: document.getElementById('matterType').value || null,
+                practice_area: document.getElementById('practiceArea').value || null,
+                priority: document.getElementById('priority').value || null,
+                court_name: document.getElementById('courtName').value || null,
+                case_number: document.getElementById('caseNumber').value || null,
+                opposing_party: document.getElementById('opposingParty').value || null,
+                opposing_counsel: document.getElementById('opposingCounsel').value || null,
+                statute_of_limitations_date: document.getElementById('statuteDate').value || null,
+                trial_date: document.getElementById('trialDate').value || null,
+                appeal_date: document.getElementById('appealDate').value || null,
+                retainer_amount: document.getElementById('retainerAmount').value ? parseFloat(document.getElementById('retainerAmount').value) : null,
+                estimated_hours: document.getElementById('estimatedHours').value ? parseFloat(document.getElementById('estimatedHours').value) : null,
+                notes: document.getElementById('notes').value || null
             };
 
             try {

@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "post_commit": {
+      "command": "echo 'Commit completed. Backend testing recommended.'",
+      "description": "Reminds to run backend-tester after commits"
+    }
+  },
+  "defaultAgent": "backend-tester"
+}

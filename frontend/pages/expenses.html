@@ -6,40 +6,20 @@
     <title>Expenses - Case Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Select2 for searchable dropdowns -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="../css/select2-tailwind.css">
+    <script src="../js/nav.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="../js/searchable-select.js"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <h1 class="text-xl font-bold text-gray-800">Case Management</h1>
-                    </div>
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                        <a href="../index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Dashboard
-                        </a>
-                        <a href="matters.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Matters
-                        </a>
-                        <a href="billing.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Time Entry
-                        </a>
-                        <a href="expenses.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Expenses
-                        </a>
-                    </div>
-                </div>
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-700 mr-4" id="userDisplay">User</span>
-                    <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">Logout</button>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <div id="app-nav"></div>
+    <script>renderNav('expenses');</script>
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -143,7 +123,19 @@
                         <!-- Receipt Upload -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Receipt</label>
-                            <input type="file" id="receipt" accept="image/*,.pdf" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            <div id="dropZone" class="relative border-2 border-dashed border-gray-300 rounded-md px-6 py-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
+                                <input type="file" id="receipt" accept="image/*,.pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                <div id="dropZoneContent" class="pointer-events-none">
+                                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                                    <p class="text-sm text-gray-600 font-medium">Drag and drop file here</p>
+                                    <p class="text-xs text-gray-500 mt-1">or click to browse</p>
+                                </div>
+                                <div id="filePreview" class="pointer-events-none hidden">
+                                    <i class="fas fa-file text-3xl text-green-500 mb-2"></i>
+                                    <p id="fileName" class="text-sm text-gray-700 font-medium"></p>
+                                    <p class="text-xs text-gray-500 mt-1">Click or drop another file to replace</p>
+                                </div>
+                            </div>
                             <p class="text-xs text-gray-500 mt-1">Upload image or PDF of receipt</p>
                         </div>
 
@@ -455,6 +447,7 @@
             document.getElementById('expenseForm').reset();
             document.getElementById('expenseDate').valueAsDate = new Date();
             document.getElementById('billedAmount').textContent = '$0.00';
+            resetFileUpload();
         }
 
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
@@ -531,6 +524,70 @@
             return str.length > length ? str.substring(0, length) + '...' : str;
         }
 
+        // Drag and drop functionality
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('receipt');
+            const dropZoneContent = document.getElementById('dropZoneContent');
+            const filePreview = document.getElementById('filePreview');
+            const fileName = document.getElementById('fileName');
+
+            // Handle file selection via input
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    showFilePreview(e.target.files[0]);
+                }
+            });
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            // Highlight drop zone when dragging over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.add('border-blue-500', 'bg-blue-50');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+                }, false);
+            });
+
+            // Handle dropped files
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    showFilePreview(files[0]);
+                }
+            }, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function showFilePreview(file) {
+                fileName.textContent = file.name;
+                dropZoneContent.classList.add('hidden');
+                filePreview.classList.remove('hidden');
+            }
+        }
+
+        function resetFileUpload() {
+            const dropZoneContent = document.getElementById('dropZoneContent');
+            const filePreview = document.getElementById('filePreview');
+            dropZoneContent.classList.remove('hidden');
+            filePreview.classList.add('hidden');
+        }
+
         // Event listeners
         document.getElementById('clientFilter').addEventListener('change', filterMatters);
         document.getElementById('amount').addEventListener('input', calculateBilledAmount);
@@ -544,6 +601,7 @@
             loadExpenses();
             loadRecentExpenses();
             document.getElementById('expenseDate').valueAsDate = new Date();
+            setupDragAndDrop();
 
             // Search on input
             document.getElementById('searchInput').addEventListener('input', performSearch);

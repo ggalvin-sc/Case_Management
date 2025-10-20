@@ -5,9 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Detail - Case Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/nav.js"></script>
+    <script src="../js/invoice-templates.js"></script>
+    <style>
+        @media print {
+            #app-nav, header, #templateSelector { display: none; }
+            body { background: white; }
+            main { max-width: 100%; padding: 0; }
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <div id="app-nav"></div>
+        <script>renderNav('invoices');</script>
+
         <!-- Header -->
         <header class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -22,8 +38,19 @@
                         <p class="text-sm text-gray-500" id="invoiceSubtitle"></p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3" id="actionButtons">
-                    <!-- Populated by JavaScript based on status -->
+                <div class="flex items-center space-x-3">
+                    <!-- Template Selector -->
+                    <div id="templateSelector" class="flex items-center space-x-2">
+                        <label class="text-sm text-gray-600">Template:</label>
+                        <select id="templateSelect" onchange="changeTemplate()" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="classic">Classic</option>
+                            <option value="modern">Modern</option>
+                            <option value="detailed">Detailed</option>
+                        </select>
+                    </div>
+                    <div id="actionButtons">
+                        <!-- Populated by JavaScript based on status -->
+                    </div>
                 </div>
             </div>
         </header>
@@ -31,91 +58,8 @@
         <!-- Main Content -->
         <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
             <!-- Invoice Preview -->
-            <div class="bg-white rounded-lg shadow mb-6" id="invoicePreview">
-                <!-- Invoice Header -->
-                <div class="p-8 border-b">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h2 class="text-3xl font-bold text-gray-900 mb-2" id="invoiceNumberDisplay">Invoice</h2>
-                            <div class="space-y-1 text-sm">
-                                <div><span class="text-gray-500">Issue Date:</span> <span id="issueDate" class="text-gray-900"></span></div>
-                                <div><span class="text-gray-500">Due Date:</span> <span id="dueDate" class="text-gray-900"></span></div>
-                                <div><span class="text-gray-500">Status:</span> <span id="statusDisplay"></span></div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-sm text-gray-500 mb-1">Bill To</div>
-                            <div class="font-semibold text-gray-900" id="clientName"></div>
-                            <div class="text-sm text-gray-600" id="clientEmail"></div>
-                            <div class="text-sm text-gray-600 whitespace-pre-line" id="clientAddress"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Matter Info -->
-                <div class="px-8 py-4 bg-gray-50 border-b">
-                    <div class="text-sm">
-                        <span class="text-gray-500">Matter:</span>
-                        <span class="font-medium text-gray-900" id="matterInfo"></span>
-                    </div>
-                </div>
-
-                <!-- Line Items -->
-                <div class="p-8">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="border-b">
-                                <th class="text-left py-2 text-sm font-medium text-gray-500">Description</th>
-                                <th class="text-right py-2 text-sm font-medium text-gray-500 w-24">Qty/Hours</th>
-                                <th class="text-right py-2 text-sm font-medium text-gray-500 w-32">Rate</th>
-                                <th class="text-right py-2 text-sm font-medium text-gray-500 w-32">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lineItemsTable" class="divide-y">
-                            <!-- Populated by JavaScript -->
-                        </tbody>
-                    </table>
-
-                    <!-- Totals -->
-                    <div class="mt-6 flex justify-end">
-                        <div class="w-64 space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Subtotal:</span>
-                                <span class="font-medium" id="subtotalDisplay">$0.00</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Tax:</span>
-                                <span class="font-medium" id="taxDisplay">$0.00</span>
-                            </div>
-                            <div class="flex justify-between text-lg font-bold border-t pt-2">
-                                <span>Total:</span>
-                                <span id="totalDisplay">$0.00</span>
-                            </div>
-                            <div id="paymentInfo" class="hidden border-t pt-2">
-                                <div class="flex justify-between text-sm text-green-600">
-                                    <span>Paid:</span>
-                                    <span id="paidDisplay">$0.00</span>
-                                </div>
-                                <div class="flex justify-between text-sm font-medium">
-                                    <span>Balance Due:</span>
-                                    <span id="balanceDisplay">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Notes and Terms -->
-                <div id="notesSection" class="px-8 pb-8 space-y-4 hidden">
-                    <div id="notesDisplay">
-                        <div class="text-sm font-medium text-gray-500 mb-1">Notes</div>
-                        <div class="text-sm text-gray-700"></div>
-                    </div>
-                    <div id="termsDisplay">
-                        <div class="text-sm font-medium text-gray-500 mb-1">Payment Terms</div>
-                        <div class="text-sm text-gray-700"></div>
-                    </div>
-                </div>
+            <div class="bg-white rounded-lg shadow p-8" id="invoicePreview">
+                <!-- Template will be rendered here -->
             </div>
         </main>
     </div>
@@ -183,11 +127,14 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:3000/api/v1';
+        // Check authentication
+        checkAuth();
+
         const urlParams = new URLSearchParams(window.location.search);
         const invoiceId = urlParams.get('id');
 
         let invoice = null;
+        let currentTemplate = 'classic';
 
         // Utility functions
         function formatCurrency(amount) {
@@ -218,27 +165,42 @@
         // API calls
         async function fetchInvoice() {
             try {
-                const response = await fetch(`${API_BASE}/invoices/${invoiceId}`);
-                invoice = await response.json();
+                invoice = await api.get(`/invoices/${invoiceId}`);
+
+                // Set default template from firm settings
+                if (invoice.firm && invoice.firm.default_invoice_template) {
+                    currentTemplate = invoice.firm.default_invoice_template;
+                    document.getElementById('templateSelect').value = currentTemplate;
+                }
+
                 renderInvoice();
             } catch (error) {
                 console.error('Error fetching invoice:', error);
+                if (error.message.includes('404') || error.message.includes('not found')) {
+                    alert('Invoice not found. Redirecting to invoice list...');
+                    setTimeout(() => window.location.href = 'invoices.html', 2000);
+                } else {
+                    alert('Failed to load invoice: ' + error.message);
+                }
             }
+        }
+
+        // Template change handler
+        function changeTemplate() {
+            currentTemplate = document.getElementById('templateSelect').value;
+            renderInvoice();
         }
 
         async function finalizeInvoice() {
             if (!confirm('Finalize this invoice? This will lock the invoice and mark items as billed.')) return;
 
             try {
-                const response = await fetch(`${API_BASE}/invoices/${invoiceId}/finalize`, {
-                    method: 'POST'
-                });
-                invoice = await response.json();
+                invoice = await api.post(`/invoices/${invoiceId}/finalize`, {});
                 renderInvoice();
                 alert('Invoice finalized successfully!');
             } catch (error) {
                 console.error('Error finalizing invoice:', error);
-                alert('Failed to finalize invoice');
+                alert('Failed to finalize invoice: ' + error.message);
             }
         }
 
@@ -246,15 +208,12 @@
             if (!confirm('Mark this invoice as sent?')) return;
 
             try {
-                const response = await fetch(`${API_BASE}/invoices/${invoiceId}/send`, {
-                    method: 'POST'
-                });
-                invoice = await response.json();
+                invoice = await api.post(`/invoices/${invoiceId}/send`, {});
                 renderInvoice();
                 alert('Invoice marked as sent!');
             } catch (error) {
                 console.error('Error sending invoice:', error);
-                alert('Failed to send invoice');
+                alert('Failed to send invoice: ' + error.message);
             }
         }
 
@@ -278,18 +237,16 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/invoices/${invoiceId}/payment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, payment_date: paymentDate })
+                invoice = await api.post(`/invoices/${invoiceId}/payment`, {
+                    amount,
+                    payment_date: paymentDate
                 });
-                invoice = await response.json();
                 closePaymentModal();
                 renderInvoice();
                 alert('Payment recorded successfully!');
             } catch (error) {
                 console.error('Error recording payment:', error);
-                alert('Failed to record payment');
+                alert('Failed to record payment: ' + error.message);
             }
         }
 
@@ -314,18 +271,13 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/invoices/${invoiceId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updates)
-                });
-                invoice = await response.json();
+                invoice = await api.patch(`/invoices/${invoiceId}`, updates);
                 closeEditModal();
                 await fetchInvoice(); // Refresh to get recalculated totals
                 alert('Invoice updated successfully!');
             } catch (error) {
                 console.error('Error updating invoice:', error);
-                alert('Failed to update invoice');
+                alert('Failed to update invoice: ' + error.message);
             }
         }
 
@@ -333,17 +285,12 @@
             if (!confirm('Void this invoice? This action cannot be undone.')) return;
 
             try {
-                const response = await fetch(`${API_BASE}/invoices/${invoiceId}/status`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'void' })
-                });
-                invoice = await response.json();
+                invoice = await api.patch(`/invoices/${invoiceId}/status`, { status: 'void' });
                 renderInvoice();
                 alert('Invoice voided');
             } catch (error) {
                 console.error('Error voiding invoice:', error);
-                alert('Failed to void invoice');
+                alert('Failed to void invoice: ' + error.message);
             }
         }
 
@@ -351,103 +298,38 @@
             if (!confirm('Delete this draft invoice? This action cannot be undone.')) return;
 
             try {
-                await fetch(`${API_BASE}/invoices/${invoiceId}`, { method: 'DELETE' });
+                await api.delete(`/invoices/${invoiceId}`);
                 alert('Invoice deleted');
                 window.location.href = 'invoices.html';
             } catch (error) {
                 console.error('Error deleting invoice:', error);
-                alert('Failed to delete invoice');
+                alert('Failed to delete invoice: ' + error.message);
             }
         }
 
-        function setToReview() {
+        async function setToReview() {
             if (!confirm('Move this invoice to review?')) return;
 
-            fetch(`${API_BASE}/invoices/${invoiceId}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'review' })
-            })
-            .then(res => res.json())
-            .then(data => {
-                invoice = data;
+            try {
+                invoice = await api.patch(`/invoices/${invoiceId}/status`, { status: 'review' });
                 renderInvoice();
                 alert('Invoice moved to review');
-            });
+            } catch (error) {
+                console.error('Error updating invoice status:', error);
+                alert('Failed to update invoice: ' + error.message);
+            }
         }
 
         // Rendering
         function renderInvoice() {
-            // Title
+            // Update title
             const invoiceNumber = invoice.invoice_number || `Draft #${invoice.id}`;
             document.getElementById('invoiceTitle').textContent = invoiceNumber;
-            document.getElementById('invoiceNumberDisplay').textContent = invoiceNumber;
             document.getElementById('invoiceSubtitle').textContent = invoice.matter_name;
 
-            // Dates and status
-            document.getElementById('issueDate').textContent = formatDate(invoice.issue_date);
-            document.getElementById('dueDate').textContent = formatDate(invoice.due_date);
-            document.getElementById('statusDisplay').innerHTML = getStatusBadge(invoice.status);
-
-            // Client info
-            document.getElementById('clientName').textContent = invoice.client_name;
-            document.getElementById('clientEmail').textContent = invoice.client_email || '';
-            document.getElementById('clientAddress').textContent = invoice.client_address || '';
-
-            // Matter info
-            document.getElementById('matterInfo').textContent = `${invoice.matter_number} - ${invoice.matter_name}`;
-
-            // Line items
-            const tbody = document.getElementById('lineItemsTable');
-            tbody.innerHTML = invoice.line_items.map(item => `
-                <tr>
-                    <td class="py-3 text-sm text-gray-900">
-                        ${item.description}
-                        <span class="text-xs text-gray-500 ml-2">(${item.item_type})</span>
-                    </td>
-                    <td class="py-3 text-sm text-gray-900 text-right">
-                        ${item.quantity.toFixed(2)}
-                    </td>
-                    <td class="py-3 text-sm text-gray-900 text-right">
-                        ${formatCurrency(item.rate)}
-                    </td>
-                    <td class="py-3 text-sm text-gray-900 text-right font-medium">
-                        ${formatCurrency(item.amount)}
-                    </td>
-                </tr>
-            `).join('');
-
-            // Totals
-            document.getElementById('subtotalDisplay').textContent = formatCurrency(invoice.subtotal);
-            document.getElementById('taxDisplay').textContent = formatCurrency(invoice.tax_amount);
-            document.getElementById('totalDisplay').textContent = formatCurrency(invoice.total_amount);
-
-            // Payment info
-            if (invoice.paid_amount > 0) {
-                document.getElementById('paymentInfo').classList.remove('hidden');
-                document.getElementById('paidDisplay').textContent = formatCurrency(invoice.paid_amount);
-                const balance = invoice.total_amount - invoice.paid_amount;
-                document.getElementById('balanceDisplay').textContent = formatCurrency(balance);
-            } else {
-                document.getElementById('paymentInfo').classList.add('hidden');
-            }
-
-            // Notes and terms
-            if (invoice.notes || invoice.payment_terms) {
-                document.getElementById('notesSection').classList.remove('hidden');
-                if (invoice.notes) {
-                    document.querySelector('#notesDisplay div:last-child').textContent = invoice.notes;
-                    document.getElementById('notesDisplay').classList.remove('hidden');
-                } else {
-                    document.getElementById('notesDisplay').classList.add('hidden');
-                }
-                if (invoice.payment_terms) {
-                    document.querySelector('#termsDisplay div:last-child').textContent = invoice.payment_terms;
-                    document.getElementById('termsDisplay').classList.remove('hidden');
-                } else {
-                    document.getElementById('termsDisplay').classList.add('hidden');
-                }
-            }
+            // Render invoice using selected template
+            const invoicePreview = document.getElementById('invoicePreview');
+            invoicePreview.innerHTML = InvoiceTemplates.render(invoice, currentTemplate);
 
             // Action buttons based on status
             renderActionButtons();
@@ -493,7 +375,7 @@
                     break;
                 case 'sent':
                     buttons = `
-                        <button onclick="openPaymentModal()" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
+                        <button id="record-payment-btn" onclick="openPaymentModal()" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
                             Record Payment
                         </button>
                         <button onclick="voidInvoice()" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-600 rounded-lg">

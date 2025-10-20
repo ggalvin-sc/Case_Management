@@ -6,46 +6,20 @@
     <title>Unbilled Time - Case Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Select2 for searchable dropdowns -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="../css/select2-tailwind.css">
+    <script src="../js/nav.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="../js/searchable-select.js"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <h1 class="text-xl font-bold text-gray-800">Case Management</h1>
-                    </div>
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                        <a href="../index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Dashboard
-                        </a>
-                        <a href="matters.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Matters
-                        </a>
-                        <a href="billing.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Time Entry
-                        </a>
-                        <a href="expenses.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Expenses
-                        </a>
-                        <a href="unbilled-time.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Unbilled Time
-                        </a>
-                        <a href="invoices.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Invoices
-                        </a>
-                    </div>
-                </div>
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-700 mr-4" id="userDisplay">User</span>
-                    <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">Logout</button>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <div id="app-nav"></div>
+    <script>renderNav('unbilled');</script>
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -146,8 +120,33 @@
             </div>
         </div>
 
+        <!-- View Toggle -->
+        <div class="bg-white rounded-lg shadow mb-6 p-4">
+            <div class="flex items-center space-x-4">
+                <label class="text-sm font-medium text-gray-700">View:</label>
+                <div class="flex space-x-2">
+                    <button id="viewByClient" onclick="switchView('client')" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md">
+                        By Client
+                    </button>
+                    <button id="viewByEntry" onclick="switchView('entry')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                        All Entries
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Client Grouped View -->
+        <div id="clientView" class="space-y-4">
+            <div class="bg-white shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Clients with Unbilled Time</h3>
+                <div id="clientGroupList" class="space-y-3">
+                    <p class="text-gray-500 text-center py-4">Loading...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Unbilled Time Table -->
-        <div class="bg-white shadow rounded-lg">
+        <div id="entryView" class="bg-white shadow rounded-lg" style="display: none;">
             <div class="px-6 py-4 border-b">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-medium text-gray-900">Unbilled Time Entries</h3>
@@ -219,6 +218,7 @@
         let sortColumn = 'entry_date';
         let sortDirection = 'desc';
         let searchTerm = '';
+        let currentView = 'client';
 
         async function loadClients() {
             try {
@@ -248,12 +248,204 @@
                 const entries = await api.get('/time-entries', { billed: false });
                 allEntries = entries;
                 filteredEntries = entries;
-                renderTable();
+
+                if (currentView === 'client') {
+                    renderClientView();
+                } else {
+                    renderTable();
+                }
                 updateSummary();
             } catch (error) {
                 console.error('Error loading unbilled time:', error);
                 document.getElementById('unbilledTableBody').innerHTML =
                     '<tr><td colspan="9" class="px-6 py-8 text-center text-red-500">Error loading data</td></tr>';
+            }
+        }
+
+        function switchView(view) {
+            currentView = view;
+
+            // Update button styles
+            if (view === 'client') {
+                document.getElementById('viewByClient').className = 'px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md';
+                document.getElementById('viewByEntry').className = 'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50';
+                document.getElementById('clientView').style.display = 'block';
+                document.getElementById('entryView').style.display = 'none';
+                renderClientView();
+            } else {
+                document.getElementById('viewByClient').className = 'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50';
+                document.getElementById('viewByEntry').className = 'px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md';
+                document.getElementById('clientView').style.display = 'none';
+                document.getElementById('entryView').style.display = 'block';
+                renderTable();
+            }
+        }
+
+        function renderClientView() {
+            const container = document.getElementById('clientGroupList');
+
+            // Group entries by client
+            const clientGroups = {};
+            filteredEntries.forEach(entry => {
+                if (!clientGroups[entry.client_id]) {
+                    clientGroups[entry.client_id] = {
+                        clientId: entry.client_id,
+                        clientName: entry.client_name,
+                        entries: [],
+                        totalHours: 0,
+                        totalAmount: 0,
+                        matters: new Set()
+                    };
+                }
+                clientGroups[entry.client_id].entries.push(entry);
+                clientGroups[entry.client_id].totalHours += entry.duration_minutes / 60;
+                clientGroups[entry.client_id].totalAmount += parseFloat(entry.amount || 0);
+                clientGroups[entry.client_id].matters.add(entry.matter_name);
+            });
+
+            const clients = Object.values(clientGroups);
+
+            if (clients.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No clients with unbilled time</p>';
+                return;
+            }
+
+            container.innerHTML = clients.map(client => `
+                <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="viewClientDetails(${client.clientId})">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900 text-lg">${client.clientName}</h4>
+                            <p class="text-sm text-gray-600 mt-1">${client.entries.length} entries across ${client.matters.size} matter(s)</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-gray-900">${formatCurrency(client.totalAmount)}</p>
+                            <p class="text-sm text-gray-600">${client.totalHours.toFixed(1)} hours</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex justify-end space-x-2">
+                        <button onclick="event.stopPropagation(); previewClientInvoice(${client.clientId})" class="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded">
+                            <i class="fas fa-eye mr-1"></i>Preview
+                        </button>
+                        <button onclick="event.stopPropagation(); createClientInvoice(${client.clientId})" class="px-3 py-1 text-sm bg-green-500 hover:bg-green-600 text-white rounded">
+                            <i class="fas fa-file-invoice mr-1"></i>Create Invoice
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function viewClientDetails(clientId) {
+            const client = filteredEntries.find(e => e.client_id === clientId);
+            const clientEntries = filteredEntries.filter(e => e.client_id === clientId);
+
+            const details = clientEntries.map(e =>
+                `${formatDate(e.entry_date)} - ${e.matter_name}: ${(e.duration_minutes/60).toFixed(2)}h @ ${formatCurrency(e.hourly_rate)} = ${formatCurrency(e.amount)}\n${e.description}`
+            ).join('\n\n');
+
+            const totalHours = clientEntries.reduce((sum, e) => sum + (e.duration_minutes / 60), 0);
+            const totalAmount = clientEntries.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+            alert(`${client.clientName}\n\nTotal: ${formatCurrency(totalAmount)} (${totalHours.toFixed(1)} hours)\nEntries: ${clientEntries.length}\n\n${details}`);
+        }
+
+        async function previewClientInvoice(clientId) {
+            const clientEntries = filteredEntries.filter(e => e.client_id === clientId);
+            const client = clientEntries[0];
+
+            // Group by matter
+            const matterGroups = {};
+            clientEntries.forEach(entry => {
+                if (!matterGroups[entry.matter_id]) {
+                    matterGroups[entry.matter_id] = {
+                        matterName: entry.matter_name,
+                        entries: []
+                    };
+                }
+                matterGroups[entry.matter_id].entries.push(entry);
+            });
+
+            let preview = `INVOICE PREVIEW\n`;
+            preview += `================\n\n`;
+            preview += `Client: ${client.clientName}\n`;
+            preview += `Date: ${new Date().toLocaleDateString()}\n`;
+            preview += `Due: Upon Receipt\n\n`;
+
+            let grandTotal = 0;
+
+            for (const [matterId, matter] of Object.entries(matterGroups)) {
+                preview += `\nMatter: ${matter.matterName}\n`;
+                preview += `${'-'.repeat(50)}\n`;
+
+                matter.entries.forEach(entry => {
+                    const hours = (entry.duration_minutes / 60).toFixed(2);
+                    preview += `${formatDate(entry.entry_date)}: ${truncate(entry.description, 30)}\n`;
+                    preview += `  ${hours} hrs @ ${formatCurrency(entry.hourly_rate)} = ${formatCurrency(entry.amount)}\n`;
+                    grandTotal += parseFloat(entry.amount);
+                });
+            }
+
+            preview += `\n${'='.repeat(50)}\n`;
+            preview += `TOTAL DUE: ${formatCurrency(grandTotal)}\n`;
+            preview += `${'='.repeat(50)}\n`;
+
+            alert(preview);
+        }
+
+        async function createClientInvoice(clientId) {
+            const clientEntries = filteredEntries.filter(e => e.client_id === clientId);
+            const client = clientEntries[0];
+
+            // Group by matter to check if multiple matters
+            const matterIds = [...new Set(clientEntries.map(e => e.matter_id))];
+
+            if (matterIds.length > 1) {
+                if (!confirm(`This client has unbilled time across ${matterIds.length} matters. Create separate invoices for each matter?`)) {
+                    return;
+                }
+
+                // Create invoice for each matter
+                for (const matterId of matterIds) {
+                    const matterEntries = clientEntries.filter(e => e.matter_id === matterId);
+                    await createMatterInvoice(matterId, clientId, matterEntries.map(e => e.id));
+                }
+
+                alert(`Created ${matterIds.length} invoices`);
+                loadUnbilledTime();
+            } else {
+                // Single matter - create one invoice
+                const matterId = matterIds[0];
+                await createMatterInvoice(matterId, clientId, clientEntries.map(e => e.id));
+                alert('Invoice created successfully!');
+                loadUnbilledTime();
+            }
+        }
+
+        async function createMatterInvoice(matterId, clientId, entryIds) {
+            try {
+                const response = await fetch('http://localhost:3000/api/v1/invoices', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        matter_id: matterId,
+                        client_id: clientId,
+                        time_entry_ids: entryIds,
+                        issue_date: new Date().toISOString().split('T')[0],
+                        payment_terms: 'Due upon receipt'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create invoice');
+                }
+
+                const invoice = await response.json();
+                return invoice;
+            } catch (error) {
+                console.error('Error creating invoice:', error);
+                throw error;
             }
         }
 
