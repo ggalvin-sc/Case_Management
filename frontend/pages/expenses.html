@@ -73,6 +73,56 @@
                             </select>
                         </div>
 
+                        <!-- Mileage Calculator (shown only when mileage is selected) -->
+                        <div id="mileageCalculator" class="hidden">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-car text-blue-600 mr-2"></i>
+                                    <h4 class="text-sm font-semibold text-blue-900">Mileage Calculator</h4>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Number of Miles *</label>
+                                    <input type="number" id="mileageNumber" step="0.1" min="0" placeholder="e.g., 25.5" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-600">Rate per mile:</span>
+                                    <span class="font-semibold text-gray-900" id="mileageRateDisplay">$0.67</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm border-t border-blue-200 pt-2">
+                                    <span class="text-gray-700 font-medium">Calculated Amount:</span>
+                                    <span class="font-bold text-blue-900 text-lg" id="calculatedMileageAmount">$0.00</span>
+                                </div>
+                                <p class="text-xs text-gray-600">
+                                    <i class="fas fa-info-circle"></i> The amount will be auto-calculated and the description will include mileage details
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Copies Calculator (shown only when copies is selected) -->
+                        <div id="copiesCalculator" class="hidden">
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-3">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-copy text-purple-600 mr-2"></i>
+                                    <h4 class="text-sm font-semibold text-purple-900">Copies Calculator</h4>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Number of Copies *</label>
+                                    <input type="number" id="copiesNumber" step="1" min="0" placeholder="e.g., 150" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-600">Rate per copy:</span>
+                                    <span class="font-semibold text-gray-900" id="copiesRateDisplay">$0.10</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm border-t border-purple-200 pt-2">
+                                    <span class="text-gray-700 font-medium">Calculated Amount:</span>
+                                    <span class="font-bold text-purple-900 text-lg" id="calculatedCopiesAmount">$0.00</span>
+                                </div>
+                                <p class="text-xs text-gray-600">
+                                    <i class="fas fa-info-circle"></i> The amount will be auto-calculated and the description will include copy details
+                                </p>
+                            </div>
+                        </div>
+
                         <!-- Description -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
@@ -256,6 +306,8 @@
         let sortColumn = 'expense_date';
         let sortDirection = 'desc';
         let searchTerm = '';
+        let mileageRate = 0.67; // Default IRS 2024 rate, will be loaded from settings
+        let copiesRate = 0.10; // Default rate per copy, will be loaded from settings
 
         async function loadClients() {
             try {
@@ -263,6 +315,11 @@
                 const select = document.getElementById('clientFilter');
                 select.innerHTML = '<option value="">All Clients</option>' +
                     allClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+                // Refresh Select2 if the function exists
+                if (typeof refreshSelect === 'function') {
+                    refreshSelect('clientFilter');
+                }
             } catch (error) {
                 console.error('Error loading clients:', error);
             }
@@ -298,6 +355,11 @@
                     const clientName = m.client_name || 'Unknown Client';
                     return `<option value="${m.id}" data-client="${m.client_id}">${clientName} - ${m.name} (${m.matter_number})</option>`;
                 }).join('');
+
+            // Refresh Select2 if the function exists
+            if (typeof refreshSelect === 'function') {
+                refreshSelect('matterSelect');
+            }
         }
 
         async function loadExpenses() {
@@ -443,11 +505,150 @@
             document.getElementById('billedAmount').textContent = formatCurrency(billedAmount);
         }
 
+        async function loadMileageRate() {
+            try {
+                const settings = await api.get('/firm-settings');
+                if (settings && settings.mileage_rate) {
+                    mileageRate = parseFloat(settings.mileage_rate);
+                }
+                if (settings && settings.copies_rate) {
+                    copiesRate = parseFloat(settings.copies_rate);
+                }
+                document.getElementById('mileageRateDisplay').textContent = formatCurrency(mileageRate);
+                document.getElementById('copiesRateDisplay').textContent = formatCurrency(copiesRate);
+            } catch (error) {
+                console.error('Error loading rates:', error);
+                // Use default rates if settings can't be loaded
+                document.getElementById('mileageRateDisplay').textContent = formatCurrency(mileageRate);
+                document.getElementById('copiesRateDisplay').textContent = formatCurrency(copiesRate);
+            }
+        }
+
+        function toggleMileageCalculator() {
+            const category = document.getElementById('category').value;
+            const mileageCalculator = document.getElementById('mileageCalculator');
+            const copiesCalculator = document.getElementById('copiesCalculator');
+            const amountInput = document.getElementById('amount');
+            const descriptionInput = document.getElementById('description');
+
+            console.log('toggleMileageCalculator called, category:', category);
+
+            // Hide all calculators first
+            mileageCalculator.classList.add('hidden');
+            copiesCalculator.classList.add('hidden');
+
+            if (category === 'mileage') {
+                console.log('Showing mileage calculator');
+                mileageCalculator.classList.remove('hidden');
+                amountInput.readOnly = true;
+                amountInput.classList.add('bg-gray-100');
+                amountInput.value = '';
+
+                // Clear and prepare description
+                if (!descriptionInput.value.includes('Mileage:')) {
+                    descriptionInput.value = '';
+                }
+                // Clear other calculator values
+                document.getElementById('copiesNumber').value = '';
+                document.getElementById('calculatedCopiesAmount').textContent = '$0.00';
+            } else if (category === 'copies') {
+                console.log('Showing copies calculator');
+                copiesCalculator.classList.remove('hidden');
+                amountInput.readOnly = true;
+                amountInput.classList.add('bg-gray-100');
+                amountInput.value = '';
+
+                // Clear and prepare description
+                if (!descriptionInput.value.includes('Copies:')) {
+                    descriptionInput.value = '';
+                }
+                // Clear other calculator values
+                document.getElementById('mileageNumber').value = '';
+                document.getElementById('calculatedMileageAmount').textContent = '$0.00';
+            } else {
+                console.log('Hiding all calculators');
+                amountInput.readOnly = false;
+                amountInput.classList.remove('bg-gray-100');
+
+                // Clear all calculator values
+                document.getElementById('mileageNumber').value = '';
+                document.getElementById('calculatedMileageAmount').textContent = '$0.00';
+                document.getElementById('copiesNumber').value = '';
+                document.getElementById('calculatedCopiesAmount').textContent = '$0.00';
+            }
+        }
+
+        function calculateMileage() {
+            const miles = parseFloat(document.getElementById('mileageNumber').value) || 0;
+            const amount = miles * mileageRate;
+
+            // Update calculated amount display
+            document.getElementById('calculatedMileageAmount').textContent = formatCurrency(amount);
+
+            // Update the actual amount field
+            document.getElementById('amount').value = amount.toFixed(2);
+
+            // Update description with mileage details
+            const descriptionInput = document.getElementById('description');
+            const mileageText = `Mileage: ${miles.toFixed(1)} miles @ ${formatCurrency(mileageRate)}/mile = ${formatCurrency(amount)}`;
+
+            // Check if description already has mileage text
+            const currentDesc = descriptionInput.value;
+            if (currentDesc.includes('Mileage:')) {
+                // Replace existing mileage text
+                descriptionInput.value = currentDesc.replace(/Mileage:.*?(\n|$)/, mileageText + '\n');
+            } else {
+                // Add mileage text at the beginning
+                descriptionInput.value = mileageText + (currentDesc ? '\n' + currentDesc : '');
+            }
+
+            // Recalculate billed amount
+            calculateBilledAmount();
+        }
+
+        function calculateCopies() {
+            const copies = parseFloat(document.getElementById('copiesNumber').value) || 0;
+            const amount = copies * copiesRate;
+
+            // Update calculated amount display
+            document.getElementById('calculatedCopiesAmount').textContent = formatCurrency(amount);
+
+            // Update the actual amount field
+            document.getElementById('amount').value = amount.toFixed(2);
+
+            // Update description with copies details
+            const descriptionInput = document.getElementById('description');
+            const copiesText = `Copies: ${copies} copies @ ${formatCurrency(copiesRate)}/copy = ${formatCurrency(amount)}`;
+
+            // Check if description already has copies text
+            const currentDesc = descriptionInput.value;
+            if (currentDesc.includes('Copies:')) {
+                // Replace existing copies text
+                descriptionInput.value = currentDesc.replace(/Copies:.*?(\n|$)/, copiesText + '\n');
+            } else {
+                // Add copies text at the beginning
+                descriptionInput.value = copiesText + (currentDesc ? '\n' + currentDesc : '');
+            }
+
+            // Recalculate billed amount
+            calculateBilledAmount();
+        }
+
         function resetForm() {
             document.getElementById('expenseForm').reset();
             document.getElementById('expenseDate').valueAsDate = new Date();
             document.getElementById('billedAmount').textContent = '$0.00';
             resetFileUpload();
+
+            // Reset calculators
+            document.getElementById('mileageCalculator').classList.add('hidden');
+            document.getElementById('copiesCalculator').classList.add('hidden');
+            document.getElementById('mileageNumber').value = '';
+            document.getElementById('calculatedMileageAmount').textContent = '$0.00';
+            document.getElementById('copiesNumber').value = '';
+            document.getElementById('calculatedCopiesAmount').textContent = '$0.00';
+            document.getElementById('amount').readOnly = false;
+            document.getElementById('amount').classList.remove('bg-gray-100');
         }
 
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
@@ -588,11 +789,6 @@
             filePreview.classList.add('hidden');
         }
 
-        // Event listeners
-        document.getElementById('clientFilter').addEventListener('change', filterMatters);
-        document.getElementById('amount').addEventListener('input', calculateBilledAmount);
-        document.getElementById('markupPercentage').addEventListener('input', calculateBilledAmount);
-
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
@@ -600,11 +796,27 @@
             loadMatters();
             loadExpenses();
             loadRecentExpenses();
+            loadMileageRate();
             document.getElementById('expenseDate').valueAsDate = new Date();
             setupDragAndDrop();
 
-            // Search on input
+            // Event listeners - set up after DOM is ready
+            document.getElementById('amount').addEventListener('input', calculateBilledAmount);
+            document.getElementById('markupPercentage').addEventListener('input', calculateBilledAmount);
+            document.getElementById('mileageNumber').addEventListener('input', calculateMileage);
+            document.getElementById('copiesNumber').addEventListener('input', calculateCopies);
             document.getElementById('searchInput').addEventListener('input', performSearch);
+
+            // Use jQuery for Select2 event listeners (after Select2 initialization delay)
+            setTimeout(() => {
+                console.log('Setting up Select2 event listeners');
+                $('#clientFilter').on('change', filterMatters);
+                $('#category').on('change', function() {
+                    console.log('Category changed via Select2, value:', $(this).val());
+                    toggleMileageCalculator();
+                });
+                console.log('Event listeners attached');
+            }, 1000);
         });
     </script>
 </body>

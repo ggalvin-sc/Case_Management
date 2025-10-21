@@ -269,6 +269,14 @@ db.serialize(() => {
         // Ignore error if column already exists
     });
 
+    db.run(`ALTER TABLE firm_settings ADD COLUMN mileage_rate REAL DEFAULT 0.67`, (err) => {
+        // Ignore error if column already exists
+    });
+
+    db.run(`ALTER TABLE firm_settings ADD COLUMN copies_rate REAL DEFAULT 0.10`, (err) => {
+        // Ignore error if column already exists
+    });
+
     // Insert default user if none exist (development only)
     db.get("SELECT COUNT(*) as count FROM users", async (err, row) => {
         if (!err && row.count === 0) {

@@ -92,6 +92,26 @@
                     </div>
                 </div>
 
+                <!-- Rates -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">IRS Mileage Rate (per mile)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+                            <input type="number" id="mileageRate" step="0.001" min="0" class="w-full border rounded-lg pl-7 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.67">
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Current IRS rate for 2024 is $0.67/mile</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Photocopy Rate (per copy)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+                            <input type="number" id="copiesRate" step="0.01" min="0" class="w-full border rounded-lg pl-7 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.10">
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Standard rate is $0.10 per page</p>
+                    </div>
+                </div>
+
                 <!-- Logo URL -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
@@ -226,6 +246,8 @@
                 document.getElementById('website').value = safeSettings.website || '';
                 document.getElementById('taxId').value = safeSettings.tax_id || '';
                 document.getElementById('logoUrl').value = safeSettings.logo_url || '';
+                document.getElementById('mileageRate').value = safeSettings.mileage_rate || '0.67';
+                document.getElementById('copiesRate').value = safeSettings.copies_rate || '0.10';
                 document.getElementById('defaultTemplate').value = safeSettings.default_invoice_template || 'classic';
                 document.getElementById('paymentTerms').value = safeSettings.default_payment_terms || '';
                 document.getElementById('invoiceFooter').value = safeSettings.invoice_footer || '';
@@ -251,6 +273,8 @@
                 website: document.getElementById('website').value,
                 tax_id: document.getElementById('taxId').value,
                 logo_url: document.getElementById('logoUrl').value,
+                mileage_rate: parseFloat(document.getElementById('mileageRate').value) || 0.67,
+                copies_rate: parseFloat(document.getElementById('copiesRate').value) || 0.10,
                 default_invoice_template: document.getElementById('defaultTemplate').value,
                 default_payment_terms: document.getElementById('paymentTerms').value,
                 invoice_footer: document.getElementById('invoiceFooter').value
