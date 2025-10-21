@@ -3001,7 +3001,13 @@ const requestHandler = async (req, res) => {
                     return;
                 }
 
-                const endpoint_id = process.env.RUNPOD_DEFAULT_ENDPOINT_ID || '3hm50vlw5z2y5o';
+                // Get RunPod endpoint ID from environment
+                const endpoint_id = process.env.RUNPOD_ENDPOINT_ID;
+
+                if (!endpoint_id) {
+                    sendJSON(req, res, 500, { error: 'RUNPOD_ENDPOINT_ID not configured in .env file' });
+                    return;
+                }
 
                 try {
                     // Save question to database
@@ -3019,19 +3025,15 @@ const requestHandler = async (req, res) => {
 
                     const questionId = result.id;
 
-                    // Execute AI request - use Groq (free and fast)
+                    // Execute AI request - use RunPod
                     const startTime = Date.now();
                     try {
-                        // Use Groq API for fast, free AI responses
-                        // Using llama-3.1-8b-instant model
-                        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${process.env.GROQ_API_KEY || ''}`
-                            },
-                            body: JSON.stringify({
-                                model: 'llama-3.1-8b-instant',
+                        console.log('[AI] Calling RunPod endpoint:', endpoint_id);
+
+                        // Call RunPod endpoint with synchronous execution
+                        const aiResult = await runpod.callRunPodEndpoint(
+                            endpoint_id,
+                            {
                                 messages: [
                                     {
                                         role: 'system',
@@ -3044,31 +3046,26 @@ const requestHandler = async (req, res) => {
                                 ],
                                 temperature: 0.7,
                                 max_tokens: 1024
-                            })
-                        });
+                            },
+                            { sync: true, timeout: 60000 } // 60 second timeout for sync execution
+                        );
 
-                        if (!groqResponse.ok) {
-                            const errorData = await groqResponse.json().catch(() => ({}));
-                            throw new Error(errorData.error?.message || `Groq API error: ${groqResponse.status}`);
-                        }
-
-                        const aiResult = await groqResponse.json();
-                        const executionTime = Date.now() - startTime;
+                        const executionTime = aiResult.executionTime || (Date.now() - startTime);
                         let answer = '';
 
-                        console.log('[AI] Groq response:', JSON.stringify(aiResult, null, 2));
+                        console.log('[AI] RunPod response:', JSON.stringify(aiResult, null, 2));
 
-                        // Extract answer from OpenRouter response (OpenAI-compatible format)
-                        if (aiResult.choices && aiResult.choices[0] && aiResult.choices[0].message) {
-                            answer = aiResult.choices[0].message.content;
-                        } else if (aiResult.output) {
-                            // Fallback for other formats
+                        // Extract answer from RunPod response
+                        if (aiResult.output) {
                             if (typeof aiResult.output === 'string') {
                                 answer = aiResult.output;
                             } else if (aiResult.output.text) {
                                 answer = aiResult.output.text;
                             } else if (aiResult.output.content) {
                                 answer = aiResult.output.content;
+                            } else if (aiResult.output.choices && aiResult.output.choices[0] && aiResult.output.choices[0].message) {
+                                // OpenAI-compatible format
+                                answer = aiResult.output.choices[0].message.content;
                             } else if (Array.isArray(aiResult.output) && aiResult.output[0]) {
                                 const firstItem = aiResult.output[0];
                                 if (typeof firstItem === 'string') {
