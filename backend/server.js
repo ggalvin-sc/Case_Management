@@ -3028,7 +3028,7 @@ const requestHandler = async (req, res) => {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': 'Bearer gsk_1RqMfJ8WoQUZH9Y6vXJ3WGdyb3FYGzO6P8K9QwRxZzYq'
+                                'Authorization': `Bearer ${process.env.GROQ_API_KEY || ''}`
                             },
                             body: JSON.stringify({
                                 model: 'llama-3.1-8b-instant',

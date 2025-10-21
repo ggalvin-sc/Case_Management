@@ -70,3 +70,9 @@ check_endpoint*.js
 query_*.js
 update_endpoint*.js
 find_working_templates.js
+
+# API test scripts (may contain secrets)
+test_*_api.js
+test_*_direct.js
+test_groq*.js
+test_openrouter*.js
